@@ -30,7 +30,7 @@ namespace AnalizadorLexico_LenguajeZAP
             string strCadenaEntrada = rTxtCodigoFuente.Text.Trim();
             DataTable matriz = ObtenerMatriz();
 
-            MessageBox.Show(ValidarCadena(matriz, strCadenaEntrada));
+            GenerarArchivoTokens(matriz, strCadenaEntrada, rTxtTokens);
 
         }
 
@@ -161,6 +161,62 @@ namespace AnalizadorLexico_LenguajeZAP
                     // Para minúsculas y el resto de símbolos que SQL no renombró
                     return c.ToString();
             }
+        }
+
+        //Metodo para genera el archivo de tokens
+        public void GenerarArchivoTokens(DataTable matriz, string textoFuente, RichTextBox rtbTokens)
+        {
+            // Limpiamos el "archivo de tokens" antes de empezar
+            rTxtTokens.Clear();
+
+            string acumulador = "";
+
+            // Agregamos un espacio al final para procesar el último lexema
+            textoFuente += " ";
+
+            for (int i = 0; i < textoFuente.Length; i++)
+            {
+                char c = textoFuente[i];
+
+                // 1. Detectar si es un separador (espacios, tabs, saltos de línea)
+                if (char.IsWhiteSpace(c))
+                {
+                    if (acumulador.Length > 0)
+                    {
+                        ImprimirTokenEnArchivo(matriz, acumulador, rTxtTokens);
+                        acumulador = "";
+                    }
+                }
+                // 2. Detectar si es un símbolo especial (operadores, delimitadores)
+                // Agregamos el signo + que estuvimos revisando antes
+                else if ("()[]{};,+-*/<>=$".Contains(c.ToString()))
+                {
+                    // Primero procesamos lo que venía antes del símbolo
+                    if (acumulador.Length > 0)
+                    {
+                        ImprimirTokenEnArchivo(matriz, acumulador, rTxtTokens);
+                        acumulador = "";
+                    }
+
+                    // Luego procesamos el símbolo solo
+                    ImprimirTokenEnArchivo(matriz, c.ToString(), rTxtTokens);
+                }
+                // 3. Acumular caracteres normales
+                else
+                {
+                    acumulador += c;
+                }
+            }
+        }
+
+        //Imprimir los tokens identificados.
+        private void ImprimirTokenEnArchivo(DataTable matriz, string lexema, RichTextBox rtbTokens)
+        {
+            // Usamos el método de validación que ya tienes (el que incluye el FDC)
+            string tokenIdentificado = ValidarCadena(matriz, lexema);
+
+            // Escribimos en el RichTextBox de solo lectura
+            rTxtTokens.AppendText(tokenIdentificado + " ");
         }
 
         // Extrae el mensaje de error (ER01, ER02...) desde la columna ACEPTA de los estados de error
