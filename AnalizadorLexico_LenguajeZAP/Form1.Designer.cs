@@ -30,12 +30,16 @@
         {
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabCodigo = new System.Windows.Forms.TabPage();
-            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.btnCargarPrograma = new System.Windows.Forms.Button();
+            this.rTxtCodigoFuente = new System.Windows.Forms.RichTextBox();
             this.tabToken = new System.Windows.Forms.TabPage();
-            this.tabError = new System.Windows.Forms.TabPage();
             this.richTextBox2 = new System.Windows.Forms.RichTextBox();
-            this.btnAnalizarCodigo = new System.Windows.Forms.Button();
+            this.tabError = new System.Windows.Forms.TabPage();
             this.richTextBox3 = new System.Windows.Forms.RichTextBox();
+            this.btnEditarPrograma = new System.Windows.Forms.Button();
+            this.btnGuardarArchivo = new System.Windows.Forms.Button();
+            this.btnAnalizarCodigo = new System.Windows.Forms.Button();
+            this.btnGuardarArchivoTokens = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.tabToken.SuspendLayout();
@@ -56,7 +60,10 @@
             // tabCodigo
             // 
             this.tabCodigo.Controls.Add(this.btnAnalizarCodigo);
-            this.tabCodigo.Controls.Add(this.richTextBox1);
+            this.tabCodigo.Controls.Add(this.btnGuardarArchivo);
+            this.tabCodigo.Controls.Add(this.btnEditarPrograma);
+            this.tabCodigo.Controls.Add(this.btnCargarPrograma);
+            this.tabCodigo.Controls.Add(this.rTxtCodigoFuente);
             this.tabCodigo.Location = new System.Drawing.Point(4, 25);
             this.tabCodigo.Name = "tabCodigo";
             this.tabCodigo.Padding = new System.Windows.Forms.Padding(3);
@@ -65,17 +72,27 @@
             this.tabCodigo.Text = "Codigo";
             this.tabCodigo.UseVisualStyleBackColor = true;
             // 
-            // richTextBox1
+            // btnCargarPrograma
             // 
-            this.richTextBox1.Font = new System.Drawing.Font("Consolas", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.richTextBox1.Location = new System.Drawing.Point(0, 0);
-            this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.Size = new System.Drawing.Size(1269, 622);
-            this.richTextBox1.TabIndex = 0;
-            this.richTextBox1.Text = "";
+            this.btnCargarPrograma.Location = new System.Drawing.Point(240, 637);
+            this.btnCargarPrograma.Name = "btnCargarPrograma";
+            this.btnCargarPrograma.Size = new System.Drawing.Size(248, 46);
+            this.btnCargarPrograma.TabIndex = 1;
+            this.btnCargarPrograma.Text = "Cargar Programa";
+            this.btnCargarPrograma.UseVisualStyleBackColor = true;
+            // 
+            // rTxtCodigoFuente
+            // 
+            this.rTxtCodigoFuente.Font = new System.Drawing.Font("Consolas", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rTxtCodigoFuente.Location = new System.Drawing.Point(0, 0);
+            this.rTxtCodigoFuente.Name = "rTxtCodigoFuente";
+            this.rTxtCodigoFuente.Size = new System.Drawing.Size(1269, 622);
+            this.rTxtCodigoFuente.TabIndex = 0;
+            this.rTxtCodigoFuente.Text = "";
             // 
             // tabToken
             // 
+            this.tabToken.Controls.Add(this.btnGuardarArchivoTokens);
             this.tabToken.Controls.Add(this.richTextBox2);
             this.tabToken.Location = new System.Drawing.Point(4, 25);
             this.tabToken.Name = "tabToken";
@@ -84,6 +101,15 @@
             this.tabToken.TabIndex = 1;
             this.tabToken.Text = "Lista de Tokens";
             this.tabToken.UseVisualStyleBackColor = true;
+            // 
+            // richTextBox2
+            // 
+            this.richTextBox2.Location = new System.Drawing.Point(0, 0);
+            this.richTextBox2.Name = "richTextBox2";
+            this.richTextBox2.ReadOnly = true;
+            this.richTextBox2.Size = new System.Drawing.Size(1265, 621);
+            this.richTextBox2.TabIndex = 0;
+            this.richTextBox2.Text = "";
             // 
             // tabError
             // 
@@ -96,25 +122,6 @@
             this.tabError.Text = "Lista de Errores";
             this.tabError.UseVisualStyleBackColor = true;
             // 
-            // richTextBox2
-            // 
-            this.richTextBox2.Location = new System.Drawing.Point(0, 0);
-            this.richTextBox2.Name = "richTextBox2";
-            this.richTextBox2.ReadOnly = true;
-            this.richTextBox2.Size = new System.Drawing.Size(1265, 621);
-            this.richTextBox2.TabIndex = 0;
-            this.richTextBox2.Text = "";
-            // 
-            // btnAnalizarCodigo
-            // 
-            this.btnAnalizarCodigo.Location = new System.Drawing.Point(1023, 635);
-            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
-            this.btnAnalizarCodigo.Size = new System.Drawing.Size(248, 46);
-            this.btnAnalizarCodigo.TabIndex = 1;
-            this.btnAnalizarCodigo.Text = "Analizar Codigo";
-            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
-            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
-            // 
             // richTextBox3
             // 
             this.richTextBox3.Location = new System.Drawing.Point(0, 0);
@@ -123,6 +130,43 @@
             this.richTextBox3.Size = new System.Drawing.Size(1269, 622);
             this.richTextBox3.TabIndex = 0;
             this.richTextBox3.Text = "";
+            // 
+            // btnEditarPrograma
+            // 
+            this.btnEditarPrograma.Location = new System.Drawing.Point(500, 637);
+            this.btnEditarPrograma.Name = "btnEditarPrograma";
+            this.btnEditarPrograma.Size = new System.Drawing.Size(248, 46);
+            this.btnEditarPrograma.TabIndex = 2;
+            this.btnEditarPrograma.Text = "Editar Programa";
+            this.btnEditarPrograma.UseVisualStyleBackColor = true;
+            // 
+            // btnGuardarArchivo
+            // 
+            this.btnGuardarArchivo.Location = new System.Drawing.Point(760, 637);
+            this.btnGuardarArchivo.Name = "btnGuardarArchivo";
+            this.btnGuardarArchivo.Size = new System.Drawing.Size(248, 46);
+            this.btnGuardarArchivo.TabIndex = 3;
+            this.btnGuardarArchivo.Text = "Guardar Archivo";
+            this.btnGuardarArchivo.UseVisualStyleBackColor = true;
+            // 
+            // btnAnalizarCodigo
+            // 
+            this.btnAnalizarCodigo.Location = new System.Drawing.Point(1020, 637);
+            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
+            this.btnAnalizarCodigo.Size = new System.Drawing.Size(248, 46);
+            this.btnAnalizarCodigo.TabIndex = 4;
+            this.btnAnalizarCodigo.Text = "Analizar Codigo";
+            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
+            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
+            // 
+            // btnGuardarArchivoTokens
+            // 
+            this.btnGuardarArchivoTokens.Location = new System.Drawing.Point(1017, 635);
+            this.btnGuardarArchivoTokens.Name = "btnGuardarArchivoTokens";
+            this.btnGuardarArchivoTokens.Size = new System.Drawing.Size(248, 46);
+            this.btnGuardarArchivoTokens.TabIndex = 4;
+            this.btnGuardarArchivoTokens.Text = "Guardar Archivo";
+            this.btnGuardarArchivoTokens.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -145,12 +189,16 @@
 
         private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.TabPage tabCodigo;
-        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.RichTextBox rTxtCodigoFuente;
         private System.Windows.Forms.TabPage tabToken;
         private System.Windows.Forms.TabPage tabError;
         private System.Windows.Forms.RichTextBox richTextBox2;
-        private System.Windows.Forms.Button btnAnalizarCodigo;
+        private System.Windows.Forms.Button btnCargarPrograma;
         private System.Windows.Forms.RichTextBox richTextBox3;
+        private System.Windows.Forms.Button btnAnalizarCodigo;
+        private System.Windows.Forms.Button btnGuardarArchivo;
+        private System.Windows.Forms.Button btnEditarPrograma;
+        private System.Windows.Forms.Button btnGuardarArchivoTokens;
     }
 }
 
