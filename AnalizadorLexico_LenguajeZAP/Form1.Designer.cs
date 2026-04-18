@@ -43,7 +43,7 @@
             this.rTxtNumeros = new System.Windows.Forms.RichTextBox();
             this.panel2 = new System.Windows.Forms.Panel();
             this.rTxtTokens = new System.Windows.Forms.RichTextBox();
-            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.rTxtNumerosTokens = new System.Windows.Forms.RichTextBox();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.tabToken.SuspendLayout();
@@ -188,7 +188,7 @@
             // 
             // panel2
             // 
-            this.panel2.Controls.Add(this.richTextBox1);
+            this.panel2.Controls.Add(this.rTxtNumerosTokens);
             this.panel2.Controls.Add(this.rTxtTokens);
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.Name = "panel2";
@@ -197,6 +197,7 @@
             // 
             // rTxtTokens
             // 
+            this.rTxtTokens.Font = new System.Drawing.Font("Consolas", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rTxtTokens.Location = new System.Drawing.Point(78, 0);
             this.rTxtTokens.Name = "rTxtTokens";
             this.rTxtTokens.ReadOnly = true;
@@ -204,17 +205,17 @@
             this.rTxtTokens.TabIndex = 1;
             this.rTxtTokens.Text = "";
             // 
-            // richTextBox1
+            // rTxtNumerosTokens
             // 
-            this.richTextBox1.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.richTextBox1.ForeColor = System.Drawing.Color.Blue;
-            this.richTextBox1.Location = new System.Drawing.Point(0, 0);
-            this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
-            this.richTextBox1.Size = new System.Drawing.Size(75, 629);
-            this.richTextBox1.TabIndex = 3;
-            this.richTextBox1.Text = "";
+            this.rTxtNumerosTokens.BackColor = System.Drawing.SystemColors.ControlLight;
+            this.rTxtNumerosTokens.ForeColor = System.Drawing.Color.Blue;
+            this.rTxtNumerosTokens.Location = new System.Drawing.Point(0, 0);
+            this.rTxtNumerosTokens.Name = "rTxtNumerosTokens";
+            this.rTxtNumerosTokens.ReadOnly = true;
+            this.rTxtNumerosTokens.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
+            this.rTxtNumerosTokens.Size = new System.Drawing.Size(75, 629);
+            this.rTxtNumerosTokens.TabIndex = 3;
+            this.rTxtNumerosTokens.Text = "";
             // 
             // Form1
             // 
@@ -251,7 +252,7 @@
         private System.Windows.Forms.RichTextBox rTxtCodigoFuente;
         private System.Windows.Forms.RichTextBox rTxtNumeros;
         private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.RichTextBox rTxtNumerosTokens;
         private System.Windows.Forms.RichTextBox rTxtTokens;
     }
 }

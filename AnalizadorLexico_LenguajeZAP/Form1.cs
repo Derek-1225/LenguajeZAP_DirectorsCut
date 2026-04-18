@@ -24,6 +24,19 @@ namespace AnalizadorLexico_LenguajeZAP
             // Configuración inicial de rtbNumeros
             rTxtNumeros.Font = rTxtCodigoFuente.Font;
             rTxtNumeros.SelectionAlignment = HorizontalAlignment.Right;
+            rTxtNumeros.ScrollBars = RichTextBoxScrollBars.None;
+
+            // Eventos para el RichTextBox de Tokens
+            rTxtTokens.TextChanged += ActualizarNumerosTokens;
+            rTxtTokens.VScroll += ActualizarNumerosTokens;
+            rTxtTokens.Resize += ActualizarNumerosTokens;
+
+            // Ajustes estéticos
+            rTxtNumerosTokens.Font = rTxtTokens.Font;
+            rTxtNumerosTokens.ReadOnly = true;
+            rTxtNumerosTokens.SelectionAlignment = HorizontalAlignment.Right;
+            rTxtNumerosTokens.BackColor = Color.LightGray; // Un color distinto para diferenciar
+            rTxtNumerosTokens.ScrollBars = RichTextBoxScrollBars.None;
 
             ActualizarNumerosLinea(null, null);
         }
@@ -40,6 +53,35 @@ namespace AnalizadorLexico_LenguajeZAP
             }
             rTxtNumeros.Text = sb.ToString();
         }
+        private void ActualizarNumerosTokens(object sender, EventArgs e)
+        {
+            // Calculamos líneas visibles del rtbTokens
+            Point pos = new Point(0, 0);
+            int primerIndice = rTxtTokens.GetCharIndexFromPosition(pos);
+            int primeraLinea = rTxtTokens.GetLineFromCharIndex(primerIndice);
+
+            pos.X = rTxtTokens.ClientRectangle.Width;
+            pos.Y = rTxtTokens.ClientRectangle.Height;
+            int ultimoIndice = rTxtTokens.GetCharIndexFromPosition(pos);
+            int ultimaLinea = rTxtTokens.GetLineFromCharIndex(ultimoIndice);
+
+            StringBuilder sb = new StringBuilder();
+
+            // Si no hay tokens generados, mostramos el 1
+            if (string.IsNullOrEmpty(rTxtTokens.Text))
+            {
+                sb.AppendLine("1");
+            }
+            else
+            {
+                for (int i = primeraLinea; i <= ultimaLinea; i++)
+                {
+                    sb.AppendLine((i + 1).ToString());
+                }
+            }
+
+            rTxtNumerosTokens.Text = sb.ToString();
+        }
 
         //Conexion de SQL Server a la base de datos donde se encuentra la matriz de transicion
         string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
@@ -55,12 +97,34 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
-            string strCadenaEntrada = rTxtCodigoFuente.Text;
+            // Limpiamos todo antes de empezar
+            rTxtTokens.Clear();
+            rTxtErrores.Clear();
+            int contadorGlobal = 0;
             DataTable matriz = ObtenerMatriz();
+            // Encabezado para la lista de errores
+            rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
+            rTxtErrores.AppendText("LÍNEA\tERROR" + Environment.NewLine);
+            rTxtErrores.AppendText("----------------------------------------------------------" + Environment.NewLine);
 
-            GenerarEspejoTokens(matriz, strCadenaEntrada, rTxtTokens);
+            // Obtenemos las líneas del editor
+            string[] lineas = rTxtCodigoFuente.Lines;
 
-        }
+            for (int i = 0; i < lineas.Length; i++)
+    {
+                // LLAMADA AL MÉTODO QUE HACE EL ESPEJO Y BUSCA ERRORES AL MISMO TIEMPO
+                // Pasamos i + 1 para que la primera línea sea la 1 y no la 0
+                string lineaDeTokens = ProcesarLineaParaTokens(matriz, lineas[i], i + 1, rTxtErrores, ref contadorGlobal);
+
+                // Escribimos en el archivo de tokens manteniendo la estructura de renglones
+                rTxtTokens.AppendText(lineaDeTokens + Environment.NewLine);
+            }
+
+            // Pie de reporte con el total
+            rTxtErrores.AppendText(Environment.NewLine + "----------------------------------------------------------" + Environment.NewLine);
+            rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
+            rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
+        }        
 
         //Metodo para el editor de codigo fuente.
         private void PegarTextoPlano()
@@ -191,21 +255,8 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
         /*-----------------------------ARCHIVO DE TOKENS-----------------------------*/
-        public void GenerarEspejoTokens(DataTable matriz, string textoFuente, RichTextBox rtbTokens)
-        {
-            rtbTokens.Clear();
-
-            // Dividimos el código fuente en líneas para mantener la estructura
-            string[] lineas = textoFuente.Split(new[] { "\n", "\r\n" }, StringSplitOptions.None);
-
-            foreach (string linea in lineas)
-            {
-                string lineaProcesada = ProcesarLineaParaTokens(matriz, linea);
-                rtbTokens.AppendText(lineaProcesada + Environment.NewLine);
-            }
-        }
-
-        private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea)
+        
+        private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea, int numLinea, RichTextBox rtbErrores, ref int totalErrores)
         {
             if (string.IsNullOrWhiteSpace(textoLinea)) return "";
 
@@ -218,33 +269,56 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 char c = lineaConEspacio[i];
 
-                // 1. Si es espacio o tabulador, lo mantenemos para conservar la sangría
+                // 1. Manejo de espacios/tabuladores
                 if (c == ' ' || c == '\t')
                 {
                     if (acumulador.Length > 0)
                     {
-                        sbLinea.Append(ValidarCadena(matriz, acumulador) + " ");
+                        // CAPTURAMOS EL RESULTADO EN UNA VARIABLE
+                        string resultado = ValidarCadena(matriz, acumulador);
+
+                        // Verificamos si es un error antes de agregarlo al StringBuilder
+                        VerificarSiEsError(resultado, acumulador, numLinea, rtbErrores, ref totalErrores);
+
+                        sbLinea.Append(resultado + " ");
                         acumulador = "";
                     }
-                    sbLinea.Append(c); // Mantiene el espacio original
+                    sbLinea.Append(c);
                 }
                 // 2. Manejo de cadenas (comillas)
                 else if (c == '"')
                 {
+                    if (acumulador.Length > 0)
+                    {
+                        string resPre = ValidarCadena(matriz, acumulador);
+                        VerificarSiEsError(resPre, acumulador, numLinea, rtbErrores, ref totalErrores);
+                        sbLinea.Append(resPre + " ");
+                        acumulador = "";
+                    }
+
                     string cadena = c.ToString(); i++;
                     while (i < lineaConEspacio.Length && lineaConEspacio[i] != '"')
                     {
                         cadena += lineaConEspacio[i]; i++;
                     }
                     if (i < lineaConEspacio.Length) cadena += '"';
-                    sbLinea.Append(ValidarCadena(matriz, cadena) + " ");
+
+                    // CAPTURAMOS EL RESULTADO DE LA CADENA
+                    string resCad = ValidarCadena(matriz, cadena);
+                    VerificarSiEsError(resCad, cadena, numLinea, rtbErrores, ref totalErrores);
+
+                    sbLinea.Append(resCad + " ");
                 }
                 // 3. Símbolos especiales (Delimitadores/Operadores)
                 else if ("()[]{};,+-*/<>=".Contains(c.ToString()))
                 {
                     if (acumulador.Length > 0)
                     {
-                        sbLinea.Append(ValidarCadena(matriz, acumulador) + " ");
+                        string resAcumulado = ValidarCadena(matriz, acumulador);
+
+                        // Enviamos a la lista de errores si es necesario
+                        VerificarSiEsError(resAcumulado, acumulador, numLinea, rtbErrores, ref totalErrores);
+                        sbLinea.Append(resAcumulado + " ");
                         acumulador = "";
                     }
 
@@ -259,7 +333,13 @@ namespace AnalizadorLexico_LenguajeZAP
                             lexemaEspecial += sig; i++;
                         }
                     }
-                    sbLinea.Append(ValidarCadena(matriz, lexemaEspecial) + " ");
+                    string resEspecial = ValidarCadena(matriz, lexemaEspecial);
+
+                    // Verificamos si el símbolo mismo es un error (ej: un & solo que no es &&)
+                    VerificarSiEsError(resEspecial, lexemaEspecial, numLinea, rtbErrores, ref totalErrores);
+
+                    sbLinea.Append(resEspecial + " ");
+
                 }
                 else
                 {
@@ -270,131 +350,53 @@ namespace AnalizadorLexico_LenguajeZAP
             return sbLinea.ToString();
         }
 
-        //Metodo para genera el archivo de tokens
-        public void GenerarArchivoTokens(DataTable matriz, string textoFuente, RichTextBox rtbTokens)
+
+        /*-----------------------------FIN ARCHIVO DE TOKENS-----------------------------*/
+
+        /*-----------------------------MANEJO DE ERRORES-----------------------------*/
+        private void RegistrarErrorEnRichText(RichTextBox rtbErrores, int linea, string lexema, string resultadoDeMatriz)
         {
-            // Limpiamos el "archivo de tokens" antes de empezar
-            rTxtTokens.Clear();
-            string acumulador = "";
-            int numeroLinea = 1;
+            // Supongamos que resultadoDeMatriz es "ER01 - Caracter no valido"
+            string entradaError = string.Format("{0}\t\t{1} (Lexema: '{2}'){3}",
+                                  linea, resultadoDeMatriz, lexema, Environment.NewLine);
 
-            // Agregamos un espacio al final para procesar el último lexema
-            textoFuente += " ";
-            //Version
-            for (int i = 0; i < textoFuente.Length; i++)
+            int inicio = rtbErrores.TextLength;
+            rtbErrores.AppendText(entradaError);
+
+            // Pintamos de rojo
+            rtbErrores.Select(inicio, entradaError.Length);
+            rtbErrores.SelectionColor = Color.Red;
+            rtbErrores.DeselectAll();
+        }
+
+        private void VerificarSiEsError(string resultado, string lexema, int linea, RichTextBox rtbErrores, ref int total)
+        {
+            // 1. Definimos exactamente qué es un error.
+            // Usamos StartsWith para que "ER01" sea error, pero "CONENTERO" no.
+            bool esError = resultado.StartsWith("ER") ||
+                           resultado.Equals("CADENA_NO_VALIDA") ||
+                           resultado.Contains("Invalido"); // Solo si tus mensajes de SQL usan esta palabra
+
+            // 2. Filtro de seguridad: Si el token es uno de tus tokens válidos, NO es error.
+            // Esto evita que "CONENTERO" entre a la lista.
+            if (resultado == "CONENTERO" || resultado == "IDEN" || resultado.StartsWith("PR"))
             {
-                char c = textoFuente[i];
+                esError = false;
+            }
 
-                // Si detectamos un salto de línea, aumentamos el contador
-                if (c == '\n')
-                {
-                    if (acumulador.Length > 0)
-                    {
-                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea);
-                        acumulador = "";
-                    }
-                    numeroLinea++;
-                    continue;
-                }
+            if (esError)
+            {
+                total++;
+                string entrada = string.Format("{0}\t{1} (Lexema: '{2}'){3}",
+                                               linea, resultado, lexema, Environment.NewLine);
 
-                if (char.IsWhiteSpace(c))
-                {
-                    if (acumulador.Length > 0)
-                    {
-                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea);
-                        acumulador = "";
-                    }
-                }
-
-                // 1. MANEJO DE CADENAS (Todo lo que esté entre " ")
-                if (c == '"')
-                {
-                    // Si había algo antes de la comilla, lo procesamos
-                    if (acumulador.Length > 0) { ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea); acumulador = ""; }
-
-                    string cadenaCompleta = c.ToString(); // Inicia con "
-                    i++;
-                    // Leemos hasta encontrar la comilla de cierre o el fin del texto
-                    while (i < textoFuente.Length && textoFuente[i] != '"')
-                    {
-                        cadenaCompleta += textoFuente[i];
-                        i++;
-                    }
-                    if (i < textoFuente.Length) cadenaCompleta += '"'; // Cierra con "
-
-                    ImprimirTokenEnArchivo(matriz, cadenaCompleta, rtbTokens,numeroLinea);
-                    continue;
-                }
-
-                // 2. SEPARADORES (Espacios, Tabs, NewLines)
-                if (char.IsWhiteSpace(c))
-                {
-                    if (acumulador.Length > 0)
-                    {
-                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens,numeroLinea);
-                        acumulador = "";
-                    }
-                }
-                // 3. SÍMBOLOS ESPECIALES (Delimitadores y Operadores)
-                // NOTA: He quitado el '$' de aquí para que se quede pegado a la palabra
-                else if ("()[]{};,+-*/<>=".Contains(c.ToString()))
-                {
-                    if (acumulador.Length > 0) { ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens,numeroLinea); acumulador = ""; }
-
-                    string lexemaEspecial = c.ToString();
-                    // Lógica de Lookahead (//, ++, --)
-                    if (i + 1 < textoFuente.Length)
-                    {
-                        char siguiente = textoFuente[i + 1];
-                        if ((c == '/' && siguiente == '/') || (c == '+' && siguiente == '+') || (c == '-' && siguiente == '-') || (c == '&' && siguiente == '&') ||
-                            (c == '|' && siguiente == '|'))
-                        {
-                            lexemaEspecial += siguiente;
-                            i++;
-                        }
-                    }
-                    if (lexemaEspecial == "//")
-                    {
-                        // Opcional: Saltar todo el texto hasta encontrar un salto de línea
-                        while (i + 1 < textoFuente.Length && textoFuente[i + 1] != '\n')
-                        {
-                            i++;
-                        }
-                        ImprimirTokenEnArchivo(matriz, "//", rtbTokens, numeroLinea); // O marcarlo como COMENTARIO
-                        continue;
-                    }
-                    else
-                    {
-                        ImprimirTokenEnArchivo(matriz, lexemaEspecial, rtbTokens, numeroLinea);
-                    }
-                }
-                // 4. ACUMULADOR (Letras, números y el símbolo $)
-                else
-                {
-                    acumulador += c;
-                }
+                int inicio = rtbErrores.TextLength;
+                rtbErrores.AppendText(entrada);
+                rtbErrores.Select(inicio, entrada.Length);
+                rtbErrores.SelectionColor = Color.Red;
+                rtbErrores.DeselectAll();
+                rtbErrores.SelectionColor = Color.Black;
             }
         }
-
-        //Imprimir los tokens identificados.
-        private void ImprimirTokenEnArchivo(DataTable matriz, string lexema, RichTextBox rtbTokens, int linea)
-        {
-            string tokenIdentificado = ValidarCadena(matriz, lexema);
-            // Formato: [Línea 1] <Lexema, Token>
-            rtbTokens.AppendText(string.Format("[Fila {0}] <{1}, {2}>{3}",
-                                 linea, lexema, tokenIdentificado, Environment.NewLine));
-        }
-
-        // Extrae el mensaje de error (ER01, ER02...) desde la columna ACEPTA de los estados de error
-        private string ObtenerMensajeError(DataTable matriz, int estadoError)
-        {
-            DataRow[] filaError = matriz.Select($"F1 = {estadoError}");
-            if (filaError.Length > 0 && filaError[0]["ACEPTA"] != DBNull.Value)
-            {
-                return filaError[0]["ACEPTA"].ToString();
-            }
-            return "ERROR_DESCONOCIDO";
-        }
-
     }
 }
