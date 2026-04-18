@@ -98,6 +98,9 @@ namespace AnalizadorLexico_LenguajeZAP
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
             // Limpiamos todo antes de empezar
+            dtgTablaSimbolos.Rows.Clear();
+            tablaSimbolos.Clear();
+            contadorID = 1;
             rTxtTokens.Clear();
             rTxtErrores.Clear();
             int contadorGlobal = 0;
@@ -111,7 +114,7 @@ namespace AnalizadorLexico_LenguajeZAP
             string[] lineas = rTxtCodigoFuente.Lines;
 
             for (int i = 0; i < lineas.Length; i++)
-    {
+            {
                 // LLAMADA AL MÉTODO QUE HACE EL ESPEJO Y BUSCA ERRORES AL MISMO TIEMPO
                 // Pasamos i + 1 para que la primera línea sea la 1 y no la 0
                 string lineaDeTokens = ProcesarLineaParaTokens(matriz, lineas[i], i + 1, rTxtErrores, ref contadorGlobal);
@@ -277,6 +280,12 @@ namespace AnalizadorLexico_LenguajeZAP
                         // CAPTURAMOS EL RESULTADO EN UNA VARIABLE
                         string resultado = ValidarCadena(matriz, acumulador);
 
+                        if (resultado == "IDEN")
+                        {
+                            // Sustituimos "IDEN" por su valor específico (IDEN1, IDEN2, etc.)
+                            resultado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                        }
+
                         // Verificamos si es un error antes de agregarlo al StringBuilder
                         VerificarSiEsError(resultado, acumulador, numLinea, rtbErrores, ref totalErrores);
 
@@ -354,20 +363,6 @@ namespace AnalizadorLexico_LenguajeZAP
         /*-----------------------------FIN ARCHIVO DE TOKENS-----------------------------*/
 
         /*-----------------------------MANEJO DE ERRORES-----------------------------*/
-        private void RegistrarErrorEnRichText(RichTextBox rtbErrores, int linea, string lexema, string resultadoDeMatriz)
-        {
-            // Supongamos que resultadoDeMatriz es "ER01 - Caracter no valido"
-            string entradaError = string.Format("{0}\t\t{1} (Lexema: '{2}'){3}",
-                                  linea, resultadoDeMatriz, lexema, Environment.NewLine);
-
-            int inicio = rtbErrores.TextLength;
-            rtbErrores.AppendText(entradaError);
-
-            // Pintamos de rojo
-            rtbErrores.Select(inicio, entradaError.Length);
-            rtbErrores.SelectionColor = Color.Red;
-            rtbErrores.DeselectAll();
-        }
 
         private void VerificarSiEsError(string resultado, string lexema, int linea, RichTextBox rtbErrores, ref int total)
         {
@@ -398,5 +393,33 @@ namespace AnalizadorLexico_LenguajeZAP
                 rtbErrores.SelectionColor = Color.Black;
             }
         }
+
+        /*-----------------------------FIN DE MANEJO DE ERRORES-----------------------------*/
+
+        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/
+        // Diccionario para rastrear identificadores: <Nombre, NumeroID>
+        Dictionary<string, int> tablaSimbolos = new Dictionary<string, int>();
+        int contadorID = 1;
+
+        private string ObtenerTokenIdentificador(string lexema, DataGridView dgvSimbolos)
+        {
+            // Si ya existe en la tabla, devolvemos su ID asignado
+            if (tablaSimbolos.ContainsKey(lexema))
+            {
+                return "IDEN" + tablaSimbolos[lexema];
+            }
+
+            // Si es nuevo, lo registramos
+            int nuevoID = contadorID++;
+            tablaSimbolos.Add(lexema, nuevoID);
+
+            // Lo agregamos visualmente al DataGridView
+            // Columnas: # IDENTIFICADOR, NOMBRE, TIPO DE DATO, VALOR
+            dgvSimbolos.Rows.Add(nuevoID, lexema, "", "");
+
+            return "IDEN" + nuevoID;
+        }
+
+
     }
 }

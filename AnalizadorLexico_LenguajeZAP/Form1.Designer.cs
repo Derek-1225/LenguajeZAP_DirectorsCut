@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabCodigo = new System.Windows.Forms.TabPage();
             this.btnAnalizarCodigo = new System.Windows.Forms.Button();
@@ -44,12 +45,24 @@
             this.panel2 = new System.Windows.Forms.Panel();
             this.rTxtTokens = new System.Windows.Forms.RichTextBox();
             this.rTxtNumerosTokens = new System.Windows.Forms.RichTextBox();
+            this.tabTablaSimbolos = new System.Windows.Forms.TabPage();
+            this.dtgTablaSimbolos = new System.Windows.Forms.DataGridView();
+            this.Identificador = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Nombre = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TipoDato = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Valor = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.tabToken.SuspendLayout();
             this.tabError.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.tabTablaSimbolos.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dtgTablaSimbolos)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -57,6 +70,7 @@
             this.tabControl1.Controls.Add(this.tabCodigo);
             this.tabControl1.Controls.Add(this.tabToken);
             this.tabControl1.Controls.Add(this.tabError);
+            this.tabControl1.Controls.Add(this.tabTablaSimbolos);
             this.tabControl1.Location = new System.Drawing.Point(12, 12);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -217,11 +231,103 @@
             this.rTxtNumerosTokens.TabIndex = 3;
             this.rTxtNumerosTokens.Text = "";
             // 
+            // tabTablaSimbolos
+            // 
+            this.tabTablaSimbolos.Controls.Add(this.dtgTablaSimbolos);
+            this.tabTablaSimbolos.Location = new System.Drawing.Point(4, 25);
+            this.tabTablaSimbolos.Name = "tabTablaSimbolos";
+            this.tabTablaSimbolos.Padding = new System.Windows.Forms.Padding(3);
+            this.tabTablaSimbolos.Size = new System.Drawing.Size(1275, 698);
+            this.tabTablaSimbolos.TabIndex = 3;
+            this.tabTablaSimbolos.Text = "Tabla de Simbolos";
+            this.tabTablaSimbolos.UseVisualStyleBackColor = true;
+            // 
+            // dtgTablaSimbolos
+            // 
+            this.dtgTablaSimbolos.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dtgTablaSimbolos.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
+            this.dtgTablaSimbolos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dtgTablaSimbolos.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.Identificador,
+            this.Nombre,
+            this.TipoDato,
+            this.Valor});
+            this.dtgTablaSimbolos.Location = new System.Drawing.Point(6, 6);
+            this.dtgTablaSimbolos.Name = "dtgTablaSimbolos";
+            this.dtgTablaSimbolos.ReadOnly = true;
+            this.dtgTablaSimbolos.RowHeadersWidth = 51;
+            this.dtgTablaSimbolos.RowTemplate.Height = 24;
+            this.dtgTablaSimbolos.Size = new System.Drawing.Size(1263, 664);
+            this.dtgTablaSimbolos.TabIndex = 0;
+            // 
+            // Identificador
+            // 
+            this.Identificador.HeaderText = "Identificador";
+            this.Identificador.MinimumWidth = 6;
+            this.Identificador.Name = "Identificador";
+            this.Identificador.ReadOnly = true;
+            // 
+            // Nombre
+            // 
+            this.Nombre.HeaderText = "Nombre";
+            this.Nombre.MinimumWidth = 6;
+            this.Nombre.Name = "Nombre";
+            this.Nombre.ReadOnly = true;
+            // 
+            // TipoDato
+            // 
+            this.TipoDato.HeaderText = "Tipo de Dato";
+            this.TipoDato.MinimumWidth = 6;
+            this.TipoDato.Name = "TipoDato";
+            this.TipoDato.ReadOnly = true;
+            // 
+            // Valor
+            // 
+            this.Valor.HeaderText = "Valor";
+            this.Valor.MinimumWidth = 6;
+            this.Valor.Name = "Valor";
+            this.Valor.ReadOnly = true;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(1301, 43);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(217, 224);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 1;
+            this.pictureBox1.TabStop = false;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label1.Location = new System.Drawing.Point(1301, 270);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(128, 23);
+            this.label1.TabIndex = 2;
+            this.label1.Text = "Version: Beta";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            this.label2.Location = new System.Drawing.Point(1301, 295);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(322, 68);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "Integrantes del Equipo\r\nEmmanuel Blanco Samaniego 23100139\r\nDerek Alexander Camar" +
+    "ena Zequeida 23100141\r\nCarlos Eduardo Contreras Hernández 23100151\r\n";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1307, 762);
+            this.ClientSize = new System.Drawing.Size(1634, 762);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.tabControl1);
             this.Name = "Form1";
             this.Text = "Analizador Lenguaje ZAP";
@@ -232,7 +338,11 @@
             this.tabError.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
+            this.tabTablaSimbolos.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dtgTablaSimbolos)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -254,6 +364,15 @@
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.RichTextBox rTxtNumerosTokens;
         private System.Windows.Forms.RichTextBox rTxtTokens;
+        private System.Windows.Forms.TabPage tabTablaSimbolos;
+        private System.Windows.Forms.DataGridView dtgTablaSimbolos;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Identificador;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Nombre;
+        private System.Windows.Forms.DataGridViewTextBoxColumn TipoDato;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Valor;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label2;
     }
 }
 
