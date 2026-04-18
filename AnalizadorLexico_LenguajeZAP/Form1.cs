@@ -13,6 +13,34 @@ namespace AnalizadorLexico_LenguajeZAP
 {
     public partial class Form1 : Form
     {
+        public void ConfigurarNumeracion()
+        {
+            // Sincronizar eventos
+            rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
+            rTxtCodigoFuente.VScroll += ActualizarNumerosLinea;
+            rTxtCodigoFuente.SelectionChanged += ActualizarNumerosLinea;
+            rTxtCodigoFuente.Resize += ActualizarNumerosLinea;
+
+            // Configuración inicial de rtbNumeros
+            rTxtNumeros.Font = rTxtCodigoFuente.Font;
+            rTxtNumeros.SelectionAlignment = HorizontalAlignment.Right;
+
+            ActualizarNumerosLinea(null, null);
+        }
+
+        private void ActualizarNumerosLinea(object sender, EventArgs e)
+        {
+            int totalLineas = rTxtCodigoFuente.Lines.Length;
+            if (totalLineas == 0) totalLineas = 1;
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i <= totalLineas; i++)
+            {
+                sb.AppendLine(i.ToString());
+            }
+            rTxtNumeros.Text = sb.ToString();
+        }
+
         //Conexion de SQL Server a la base de datos donde se encuentra la matriz de transicion
         string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
         public Form1()
@@ -22,15 +50,15 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void Form1_Load(object sender, EventArgs e)
         {
-
+            ConfigurarNumeracion();
         }
 
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
-            string strCadenaEntrada = rTxtCodigoFuente.Text.Trim();
+            string strCadenaEntrada = rTxtCodigoFuente.Text;
             DataTable matriz = ObtenerMatriz();
 
-            GenerarArchivoTokens(matriz, strCadenaEntrada, rTxtTokens);
+            GenerarEspejoTokens(matriz, strCadenaEntrada, rTxtTokens);
 
         }
 
@@ -71,7 +99,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                string query = "SELECT * FROM ['Hoja 1$']";
+                string query = "SELECT * FROM [Matriz$]";
                 SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
                 adapter.Fill(tabla);
             }
@@ -162,46 +190,185 @@ namespace AnalizadorLexico_LenguajeZAP
                     return c.ToString();
             }
         }
+        /*-----------------------------ARCHIVO DE TOKENS-----------------------------*/
+        public void GenerarEspejoTokens(DataTable matriz, string textoFuente, RichTextBox rtbTokens)
+        {
+            rtbTokens.Clear();
+
+            // Dividimos el código fuente en líneas para mantener la estructura
+            string[] lineas = textoFuente.Split(new[] { "\n", "\r\n" }, StringSplitOptions.None);
+
+            foreach (string linea in lineas)
+            {
+                string lineaProcesada = ProcesarLineaParaTokens(matriz, linea);
+                rtbTokens.AppendText(lineaProcesada + Environment.NewLine);
+            }
+        }
+
+        private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea)
+        {
+            if (string.IsNullOrWhiteSpace(textoLinea)) return "";
+
+            StringBuilder sbLinea = new StringBuilder();
+            string acumulador = "";
+            // Añadimos un espacio al final de la línea para procesar el último lexema
+            string lineaConEspacio = textoLinea + " ";
+
+            for (int i = 0; i < lineaConEspacio.Length; i++)
+            {
+                char c = lineaConEspacio[i];
+
+                // 1. Si es espacio o tabulador, lo mantenemos para conservar la sangría
+                if (c == ' ' || c == '\t')
+                {
+                    if (acumulador.Length > 0)
+                    {
+                        sbLinea.Append(ValidarCadena(matriz, acumulador) + " ");
+                        acumulador = "";
+                    }
+                    sbLinea.Append(c); // Mantiene el espacio original
+                }
+                // 2. Manejo de cadenas (comillas)
+                else if (c == '"')
+                {
+                    string cadena = c.ToString(); i++;
+                    while (i < lineaConEspacio.Length && lineaConEspacio[i] != '"')
+                    {
+                        cadena += lineaConEspacio[i]; i++;
+                    }
+                    if (i < lineaConEspacio.Length) cadena += '"';
+                    sbLinea.Append(ValidarCadena(matriz, cadena) + " ");
+                }
+                // 3. Símbolos especiales (Delimitadores/Operadores)
+                else if ("()[]{};,+-*/<>=".Contains(c.ToString()))
+                {
+                    if (acumulador.Length > 0)
+                    {
+                        sbLinea.Append(ValidarCadena(matriz, acumulador) + " ");
+                        acumulador = "";
+                    }
+
+                    string lexemaEspecial = c.ToString();
+                    // Lookahead para //, ++, --
+                    if (i + 1 < lineaConEspacio.Length)
+                    {
+                        char sig = lineaConEspacio[i + 1];
+                        if ((c == '/' && sig == '/') || (c == '+' && sig == '+') || (c == '-' && sig == '-') || (c == '&' && sig == '&') ||
+                            (c == '|' && sig == '|'))
+                        {
+                            lexemaEspecial += sig; i++;
+                        }
+                    }
+                    sbLinea.Append(ValidarCadena(matriz, lexemaEspecial) + " ");
+                }
+                else
+                {
+                    acumulador += c;
+                }
+            }
+
+            return sbLinea.ToString();
+        }
 
         //Metodo para genera el archivo de tokens
         public void GenerarArchivoTokens(DataTable matriz, string textoFuente, RichTextBox rtbTokens)
         {
             // Limpiamos el "archivo de tokens" antes de empezar
             rTxtTokens.Clear();
-
             string acumulador = "";
+            int numeroLinea = 1;
 
             // Agregamos un espacio al final para procesar el último lexema
             textoFuente += " ";
-
+            //Version
             for (int i = 0; i < textoFuente.Length; i++)
             {
                 char c = textoFuente[i];
 
-                // 1. Detectar si es un separador (espacios, tabs, saltos de línea)
+                // Si detectamos un salto de línea, aumentamos el contador
+                if (c == '\n')
+                {
+                    if (acumulador.Length > 0)
+                    {
+                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea);
+                        acumulador = "";
+                    }
+                    numeroLinea++;
+                    continue;
+                }
+
                 if (char.IsWhiteSpace(c))
                 {
                     if (acumulador.Length > 0)
                     {
-                        ImprimirTokenEnArchivo(matriz, acumulador, rTxtTokens);
+                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea);
                         acumulador = "";
                     }
                 }
-                // 2. Detectar si es un símbolo especial (operadores, delimitadores)
-                // Agregamos el signo + que estuvimos revisando antes
-                else if ("()[]{};,+-*/<>=$".Contains(c.ToString()))
+
+                // 1. MANEJO DE CADENAS (Todo lo que esté entre " ")
+                if (c == '"')
                 {
-                    // Primero procesamos lo que venía antes del símbolo
+                    // Si había algo antes de la comilla, lo procesamos
+                    if (acumulador.Length > 0) { ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens, numeroLinea); acumulador = ""; }
+
+                    string cadenaCompleta = c.ToString(); // Inicia con "
+                    i++;
+                    // Leemos hasta encontrar la comilla de cierre o el fin del texto
+                    while (i < textoFuente.Length && textoFuente[i] != '"')
+                    {
+                        cadenaCompleta += textoFuente[i];
+                        i++;
+                    }
+                    if (i < textoFuente.Length) cadenaCompleta += '"'; // Cierra con "
+
+                    ImprimirTokenEnArchivo(matriz, cadenaCompleta, rtbTokens,numeroLinea);
+                    continue;
+                }
+
+                // 2. SEPARADORES (Espacios, Tabs, NewLines)
+                if (char.IsWhiteSpace(c))
+                {
                     if (acumulador.Length > 0)
                     {
-                        ImprimirTokenEnArchivo(matriz, acumulador, rTxtTokens);
+                        ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens,numeroLinea);
                         acumulador = "";
                     }
-
-                    // Luego procesamos el símbolo solo
-                    ImprimirTokenEnArchivo(matriz, c.ToString(), rTxtTokens);
                 }
-                // 3. Acumular caracteres normales
+                // 3. SÍMBOLOS ESPECIALES (Delimitadores y Operadores)
+                // NOTA: He quitado el '$' de aquí para que se quede pegado a la palabra
+                else if ("()[]{};,+-*/<>=".Contains(c.ToString()))
+                {
+                    if (acumulador.Length > 0) { ImprimirTokenEnArchivo(matriz, acumulador, rtbTokens,numeroLinea); acumulador = ""; }
+
+                    string lexemaEspecial = c.ToString();
+                    // Lógica de Lookahead (//, ++, --)
+                    if (i + 1 < textoFuente.Length)
+                    {
+                        char siguiente = textoFuente[i + 1];
+                        if ((c == '/' && siguiente == '/') || (c == '+' && siguiente == '+') || (c == '-' && siguiente == '-') || (c == '&' && siguiente == '&') ||
+                            (c == '|' && siguiente == '|'))
+                        {
+                            lexemaEspecial += siguiente;
+                            i++;
+                        }
+                    }
+                    if (lexemaEspecial == "//")
+                    {
+                        // Opcional: Saltar todo el texto hasta encontrar un salto de línea
+                        while (i + 1 < textoFuente.Length && textoFuente[i + 1] != '\n')
+                        {
+                            i++;
+                        }
+                        ImprimirTokenEnArchivo(matriz, "//", rtbTokens, numeroLinea); // O marcarlo como COMENTARIO
+                        continue;
+                    }
+                    else
+                    {
+                        ImprimirTokenEnArchivo(matriz, lexemaEspecial, rtbTokens, numeroLinea);
+                    }
+                }
+                // 4. ACUMULADOR (Letras, números y el símbolo $)
                 else
                 {
                     acumulador += c;
@@ -210,13 +377,12 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         //Imprimir los tokens identificados.
-        private void ImprimirTokenEnArchivo(DataTable matriz, string lexema, RichTextBox rtbTokens)
+        private void ImprimirTokenEnArchivo(DataTable matriz, string lexema, RichTextBox rtbTokens, int linea)
         {
-            // Usamos el método de validación que ya tienes (el que incluye el FDC)
             string tokenIdentificado = ValidarCadena(matriz, lexema);
-
-            // Escribimos en el RichTextBox de solo lectura
-            rTxtTokens.AppendText(tokenIdentificado + " ");
+            // Formato: [Línea 1] <Lexema, Token>
+            rtbTokens.AppendText(string.Format("[Fila {0}] <{1}, {2}>{3}",
+                                 linea, lexema, tokenIdentificado, Environment.NewLine));
         }
 
         // Extrae el mensaje de error (ER01, ER02...) desde la columna ACEPTA de los estados de error
