@@ -7,7 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Data.SqlClient; 
+using Microsoft.Data.SqlClient;
+using System.IO;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
@@ -420,6 +421,85 @@ namespace AnalizadorLexico_LenguajeZAP
             return "IDEN" + nuevoID;
         }
 
+        private void btnGuardarArchivo_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
 
+         
+            saveFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt";
+            saveFileDialog.Title = "Guardar código fuente";
+            saveFileDialog.DefaultExt = "zap";
+            saveFileDialog.AddExtension = true;
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                  
+                    File.WriteAllText(saveFileDialog.FileName, rTxtCodigoFuente.Text);
+
+                    MessageBox.Show("Archivo guardado con éxito.", "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al guardar el archivo: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void btnCargarPrograma_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+
+            // Filtros para que el usuario solo vea archivos de texto o con la extensión de tu lenguaje
+            openFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
+            openFileDialog.Title = "Seleccionar código fuente ZAP";
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+               
+                    string contenido = File.ReadAllText(openFileDialog.FileName);
+
+                
+                    rTxtCodigoFuente.Text = contenido;
+
+                    MessageBox.Show("Archivo cargado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al cargar el archivo: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void btnGuardarArchivoTokens_Click(object sender, EventArgs e)
+        {
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+           
+                saveFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt";
+                saveFileDialog.Title = "Guardar código fuente";
+                saveFileDialog.DefaultExt = "zap";
+                saveFileDialog.AddExtension = true;
+
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+            
+                        File.WriteAllText(saveFileDialog.FileName, rTxtCodigoFuente.Text);
+
+                        MessageBox.Show("Archivo guardado con éxito.", "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error al guardar el archivo: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
     }
 }
