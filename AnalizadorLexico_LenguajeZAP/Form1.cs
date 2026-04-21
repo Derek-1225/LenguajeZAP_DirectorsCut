@@ -16,13 +16,11 @@ namespace AnalizadorLexico_LenguajeZAP
     {
         public void ConfigurarNumeracion()
         {
-            // Sincronizar eventos
             rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
             rTxtCodigoFuente.VScroll += ActualizarNumerosLinea;
             rTxtCodigoFuente.SelectionChanged += ActualizarNumerosLinea;
             rTxtCodigoFuente.Resize += ActualizarNumerosLinea;
 
-            // Configuración inicial de rtbNumeros
             rTxtNumeros.Font = rTxtCodigoFuente.Font;
             rTxtNumeros.SelectionAlignment = HorizontalAlignment.Right;
             rTxtNumeros.ScrollBars = RichTextBoxScrollBars.None;
@@ -32,11 +30,10 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtTokens.VScroll += ActualizarNumerosTokens;
             rTxtTokens.Resize += ActualizarNumerosTokens;
 
-            // Ajustes estéticos
             rTxtNumerosTokens.Font = rTxtTokens.Font;
             rTxtNumerosTokens.ReadOnly = true;
             rTxtNumerosTokens.SelectionAlignment = HorizontalAlignment.Right;
-            rTxtNumerosTokens.BackColor = Color.LightGray; // Un color distinto para diferenciar
+            rTxtNumerosTokens.BackColor = Color.LightGray;
             rTxtNumerosTokens.ScrollBars = RichTextBoxScrollBars.None;
 
             ActualizarNumerosLinea(null, null);
@@ -56,7 +53,6 @@ namespace AnalizadorLexico_LenguajeZAP
         }
         private void ActualizarNumerosTokens(object sender, EventArgs e)
         {
-            // Calculamos líneas visibles del rtbTokens
             Point pos = new Point(0, 0);
             int primerIndice = rTxtTokens.GetCharIndexFromPosition(pos);
             int primeraLinea = rTxtTokens.GetLineFromCharIndex(primerIndice);
@@ -84,6 +80,43 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtNumerosTokens.Text = sb.ToString();
         }
 
+        private void AplicarColorErrores(RichTextBox rtb)
+        {
+            // Guardamos donde estaba el usuario para que no salte el cursor
+            int posicionOriginal = rtb.SelectionStart;
+
+            // El texto completo de los tokens
+            string contenido = rtb.Text;
+
+            // Buscamos cada token separado por espacios o saltos de línea
+            string[] tokens = contenido.Split(new char[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+            int busquedaDesde = 0;
+            foreach (string t in tokens)
+            {
+                if (t.StartsWith("ER"))
+                {
+                    // Buscamos la posición exacta de la palabra "ERxx"
+                    int inicio = rtb.Find(t, busquedaDesde, RichTextBoxFinds.WholeWord);
+
+                    if (inicio != -1)
+                    {
+                        rtb.Select(inicio, t.Length);
+                        rtb.SelectionColor = Color.Red;
+                        rtb.SelectionFont = new Font(rtb.Font, FontStyle.Bold); // Lo ponemos en negrita también
+
+                        // Actualizamos para no buscar siempre desde el principio
+                        busquedaDesde = inicio + t.Length;
+                    }
+                }
+            }
+
+            // Al terminar, regresamos el color a negro y el cursor a su lugar
+            rtb.SelectionStart = posicionOriginal;
+            rtb.SelectionLength = 0;
+            rtb.SelectionColor = Color.Black;
+        }
+
         //Conexion de SQL Server a la base de datos donde se encuentra la matriz de transicion
         string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
         public Form1()
@@ -93,6 +126,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            //Configuramos la numeracion del editor de texto al cargar el ejecutable
             ConfigurarNumeracion();
         }
 
@@ -116,21 +150,20 @@ namespace AnalizadorLexico_LenguajeZAP
 
             for (int i = 0; i < lineas.Length; i++)
             {
-                // LLAMADA AL MÉTODO QUE HACE EL ESPEJO Y BUSCA ERRORES AL MISMO TIEMPO
-                // Pasamos i + 1 para que la primera línea sea la 1 y no la 0
+                // Mandamos a llamar el metodo que generará el archivo de tokens y los errores que puedan presentarse
                 string lineaDeTokens = ProcesarLineaParaTokens(matriz, lineas[i], i + 1, rTxtErrores, ref contadorGlobal);
 
                 // Escribimos en el archivo de tokens manteniendo la estructura de renglones
                 rTxtTokens.AppendText(lineaDeTokens + Environment.NewLine);
             }
-
+            AplicarColorErrores(rTxtTokens);
             // Pie de reporte con el total
             rTxtErrores.AppendText(Environment.NewLine + "----------------------------------------------------------" + Environment.NewLine);
             rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
             rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
         }        
 
-        //Metodo para el editor de codigo fuente.
+        //Metodo para el editor de codigo fuente para evitar que se cambie la fuente de texto en caso de que se copie de un texto externo
         private void PegarTextoPlano()
         {
             if (Clipboard.ContainsText())
@@ -143,7 +176,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 // Aplicar fuente solo al texto pegado
                 rTxtCodigoFuente.Select(inicio, texto.Length);
-                rTxtCodigoFuente.SelectionFont = new Font("Consolas", 11);
+                rTxtCodigoFuente.SelectionFont = new Font("Consolas", 10.2f);
 
                 // Restaurar cursor
                 rTxtCodigoFuente.SelectionStart = inicio + texto.Length;
@@ -180,7 +213,6 @@ namespace AnalizadorLexico_LenguajeZAP
             int estadoActual = 1;
             int[] estadosError = { 276, 277, 278, 279, 280, 281, 282, 283, 284, 285 };
 
-            // 1. Recorrido de los caracteres visibles (h, o, l, a...)
             foreach (char c in cadenaEntrada)
             {
                 string nombreColumna = ObtenerNombreColumnaSQL(c);
@@ -192,14 +224,14 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
-            // 2. REPRESENTACIÓN DEL FDC (Sin símbolo físico)
             // Forzamos un último salto usando la columna "FDC" de tu base de datos
             estadoActual = MoverSiguienteEstado(matriz, estadoActual, "FDC", estadosError);
 
-            // 3. Verificación final
+            //Se obtiene el token o error correspondiente a la cadena leida
             return ObtenerTokenOError(matriz, estadoActual);
         }
 
+        //Metodo que nos ayuda a realizar los movimientos de estado en la matriz de transicion
         private int MoverSiguienteEstado(DataTable matriz, int estado, string columna, int[] errores)
         {
             // Buscamos la fila del estado actual
@@ -217,6 +249,7 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
 
+        //Metodo que nos devolvera el token o error de la cadena leida previamente
         private string ObtenerTokenOError(DataTable matriz, int estado)
         {
             DataRow[] filas = matriz.Select("F1 = " + estado);
@@ -227,17 +260,14 @@ namespace AnalizadorLexico_LenguajeZAP
             return "CADENA_NO_VALIDA";
         }
 
-        // Esta función traduce lo que el usuario escribe a como se llama la columna en SQL
+        // Metodo auxiliar para algunos caracteres en la base de datos SQL
         private string ObtenerNombreColumnaSQL(char c)
         {
-            // 1. Manejo de Mayúsculas (SQL les añade un 1)
             if (char.IsUpper(c))
             {
                 return c.ToString() + "1";
             }
             
-            // 2. Manejo de Caracteres Especiales con nombres modificados por SQL
-            // Basado en tus hallazgos: . es #1, , es . , [ es (1 , ] es )1
             switch (c)
             {
                 case '.':
@@ -250,16 +280,13 @@ namespace AnalizadorLexico_LenguajeZAP
                     return ")1";
                 case '!':
                     return "_1";
-                // Si detectas que otros símbolos fallan, agrégalos aquí:
-                // case '(': return "algunNombre"; 
 
                 default:
-                    // Para minúsculas y el resto de símbolos que SQL no renombró
                     return c.ToString();
             }
         }
         /*-----------------------------ARCHIVO DE TOKENS-----------------------------*/
-        
+        //Metodo que genera el archivo de tokens asi como detecta los errores que se puedan presentar
         private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea, int numLinea, RichTextBox rtbErrores, ref int totalErrores)
         {
             if (string.IsNullOrWhiteSpace(textoLinea)) return "";
@@ -272,22 +299,42 @@ namespace AnalizadorLexico_LenguajeZAP
             for (int i = 0; i < lineaConEspacio.Length; i++)
             {
                 char c = lineaConEspacio[i];
+                if (c == ',') // Detectamos la coma
+                {
+                    //Si hay algo previo a validar
+                    if (acumulador.Length > 0)
+                    {
+                        string resPrevio = ValidarCadena(matriz, acumulador);
+                        if (resPrevio == "IDEN") resPrevio = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                        VerificarSiEsError(resPrevio, acumulador, numLinea, rtbErrores, ref totalErrores);
+                        sbLinea.Append(resPrevio + " ");
+                        acumulador = "";
+                    }
 
-                // 1. Manejo de espacios/tabuladores
-                if (c == ' ' || c == '\t')
+                    //Si no hay nada que validar
+                    string resComa = ValidarCadena(matriz, ",");
+                    if (resComa.Contains("ER") || resComa == "CADENA_NO_VALIDA")
+                    {
+                        resComa = "CS15";
+                    }
+
+                    sbLinea.Append(resComa + " ");
+                    continue;
+                }
+                //Espacios en blanco
+                else if (c == ' ' || c == '\t')
                 {
                     if (acumulador.Length > 0)
                     {
-                        // CAPTURAMOS EL RESULTADO EN UNA VARIABLE
                         string resultado = ValidarCadena(matriz, acumulador);
 
                         if (resultado == "IDEN")
                         {
-                            // Sustituimos "IDEN" por su valor específico (IDEN1, IDEN2, etc.)
+                            // Utilizamos la tabla de simbolos para verificar si ya existe el identificador
                             resultado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
                         }
 
-                        // Verificamos si es un error antes de agregarlo al StringBuilder
+                        // Verificamos si es un error antes de agregarlo al archivo de tokens
                         VerificarSiEsError(resultado, acumulador, numLinea, rtbErrores, ref totalErrores);
 
                         sbLinea.Append(resultado + " ");
@@ -295,7 +342,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                     sbLinea.Append(c);
                 }
-                // 2. Manejo de cadenas (comillas)
+                //Cadenas
                 else if (c == '"')
                 {
                     if (acumulador.Length > 0)
@@ -306,39 +353,83 @@ namespace AnalizadorLexico_LenguajeZAP
                         acumulador = "";
                     }
 
-                    string cadena = c.ToString(); i++;
+                    string cadena = c.ToString();
+                    i++;
                     while (i < lineaConEspacio.Length && lineaConEspacio[i] != '"')
                     {
-                        cadena += lineaConEspacio[i]; i++;
+                        cadena += lineaConEspacio[i];
+                        i++;
                     }
-                    if (i < lineaConEspacio.Length) cadena += '"';
+                    if (i < lineaConEspacio.Length)
+                    {
+                        cadena += '"';
+                    }
+                    string cadenaParaValidar = cadena.Replace(' ', '_');
 
-                    // CAPTURAMOS EL RESULTADO DE LA CADENA
-                    string resCad = ValidarCadena(matriz, cadena);
+                    string resCad = ValidarCadena(matriz, cadenaParaValidar);
                     VerificarSiEsError(resCad, cadena, numLinea, rtbErrores, ref totalErrores);
 
                     sbLinea.Append(resCad + " ");
                 }
-                // 3. Símbolos especiales (Delimitadores/Operadores)
-                else if ("()[]{};,+-*/<>=".Contains(c.ToString()))
+                else if ("+-".Contains(c.ToString()))
+                {
+                    bool esExponencial = acumulador.Length > 0 &&
+                         acumulador.ToUpper().EndsWith("E") &&
+                         char.IsDigit(acumulador[0]);
+
+                    if (esExponencial)
+                    {
+                        acumulador += c;
+                    }
+                    else
+                    {
+                        if (acumulador.Length > 0)
+                        {
+                            string resPrev = ValidarCadena(matriz, acumulador);
+                            VerificarSiEsError(resPrev, acumulador, numLinea, rtbErrores, ref totalErrores);
+                            sbLinea.Append(resPrev + " ");
+                            acumulador = "";
+                        }
+
+                        string lexemaOp = c.ToString();
+                        if (i + 1 < lineaConEspacio.Length)
+                        {
+                            char sig = lineaConEspacio[i + 1];
+                            if ((c == '+' && sig == '+') || (c == '-' && sig == '-'))
+                            {
+                                lexemaOp += sig;
+                                i++;
+                            }
+                        }
+                        string resOp = ValidarCadena(matriz, lexemaOp);
+                        VerificarSiEsError(resOp, lexemaOp, numLinea, rtbErrores, ref totalErrores);
+                        sbLinea.Append(resOp + " ");
+                    }
+                }
+                //Caracteres Especiales
+                else if ("()[]{};*/!<>=".Contains(c.ToString()))
                 {
                     if (acumulador.Length > 0)
                     {
                         string resAcumulado = ValidarCadena(matriz, acumulador);
 
-                        // Enviamos a la lista de errores si es necesario
                         VerificarSiEsError(resAcumulado, acumulador, numLinea, rtbErrores, ref totalErrores);
                         sbLinea.Append(resAcumulado + " ");
                         acumulador = "";
                     }
 
                     string lexemaEspecial = c.ToString();
-                    // Lookahead para //, ++, --
+                    //Caso para operadores como &&, ||, >=, !=
                     if (i + 1 < lineaConEspacio.Length)
                     {
                         char sig = lineaConEspacio[i + 1];
-                        if ((c == '/' && sig == '/') || (c == '+' && sig == '+') || (c == '-' && sig == '-') || (c == '&' && sig == '&') ||
-                            (c == '|' && sig == '|'))
+                        if (c == '/' && sig == '/')
+                        {
+                            sbLinea.Append("COMEN ");
+                            break;
+                        }
+                        if ((c == '+' && sig == '+') || (c == '-' && sig == '-') || (c == '&' && sig == '&') || (c == '=' && sig == '=') ||
+                            (c == '|' && sig == '|') || (c == '>' && sig == '=') || (c == '<' && sig == '=') || (c == '!' && sig == '='))
                         {
                             lexemaEspecial += sig; i++;
                         }
@@ -356,7 +447,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     acumulador += c;
                 }
             }
-
             return sbLinea.ToString();
         }
 
@@ -367,14 +457,10 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void VerificarSiEsError(string resultado, string lexema, int linea, RichTextBox rtbErrores, ref int total)
         {
-            // 1. Definimos exactamente qué es un error.
-            // Usamos StartsWith para que "ER01" sea error, pero "CONENTERO" no.
-            bool esError = resultado.StartsWith("ER") ||
-                           resultado.Equals("CADENA_NO_VALIDA") ||
-                           resultado.Contains("Invalido"); // Solo si tus mensajes de SQL usan esta palabra
 
-            // 2. Filtro de seguridad: Si el token es uno de tus tokens válidos, NO es error.
-            // Esto evita que "CONENTERO" entre a la lista.
+            bool esError = resultado.StartsWith("ER") ||
+                           resultado.Equals("CADENA_NO_VALIDA");
+
             if (resultado == "CONENTERO" || resultado == "IDEN" || resultado.StartsWith("PR"))
             {
                 esError = false;
@@ -392,13 +478,13 @@ namespace AnalizadorLexico_LenguajeZAP
                 rtbErrores.SelectionColor = Color.Red;
                 rtbErrores.DeselectAll();
                 rtbErrores.SelectionColor = Color.Black;
+
             }
         }
 
         /*-----------------------------FIN DE MANEJO DE ERRORES-----------------------------*/
 
-        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/
-        // Diccionario para rastrear identificadores: <Nombre, NumeroID>
+        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/        
         Dictionary<string, int> tablaSimbolos = new Dictionary<string, int>();
         int contadorID = 1;
 
@@ -414,13 +500,13 @@ namespace AnalizadorLexico_LenguajeZAP
             int nuevoID = contadorID++;
             tablaSimbolos.Add(lexema, nuevoID);
 
-            // Lo agregamos visualmente al DataGridView
-            // Columnas: # IDENTIFICADOR, NOMBRE, TIPO DE DATO, VALOR
+            // Lo agregamos al datagridview
             dgvSimbolos.Rows.Add(nuevoID, lexema, "", "");
 
             return "IDEN" + nuevoID;
         }
 
+        //Metodo para guardar el archivo de codigo fuente
         private void btnGuardarArchivo_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -447,6 +533,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo para cargar el archivo de codigo fuente
         private void btnCargarPrograma_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -464,7 +551,8 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 
                     rTxtCodigoFuente.Text = contenido;
-
+                    rTxtCodigoFuente.ReadOnly=true;
+                    rTxtCodigoFuente.BackColor = SystemColors.ControlLight;
                     MessageBox.Show("Archivo cargado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -474,23 +562,29 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo para guardar el archivo de tokens
         private void btnGuardarArchivoTokens_Click(object sender, EventArgs e)
         {
+            if (rTxtTokens.Text.Contains("ER0") || rTxtTokens.Text.Contains("ER1"))
+            {
+                MessageBox.Show("No se puede guardar el archivo de tokens porque contiene errores. Por favor, corrige los errores antes de guardar.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else
             {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
 
-           
-                saveFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt";
-                saveFileDialog.Title = "Guardar código fuente";
-                saveFileDialog.DefaultExt = "zap";
+
+                saveFileDialog.Filter = "Archivos de Tokens ZAP (*.ztk)|*.ztk|Archivos de texto (*.txt)|*.txt";
+                saveFileDialog.Title = "Guardar archivo de tokens";
+                saveFileDialog.DefaultExt = "ztk";
                 saveFileDialog.AddExtension = true;
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     try
                     {
-            
-                        File.WriteAllText(saveFileDialog.FileName, rTxtCodigoFuente.Text);
+
+                        File.WriteAllText(saveFileDialog.FileName, rTxtTokens.Text);
 
                         MessageBox.Show("Archivo guardado con éxito.", "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
@@ -500,6 +594,12 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
             }
+        }
+        //Metodo para editar el programa de codigo fuente
+        private void btnEditarPrograma_Click(object sender, EventArgs e)
+        {
+            rTxtCodigoFuente.ReadOnly = false;
+            rTxtCodigoFuente.BackColor = SystemColors.Window;
         }
     }
 }
