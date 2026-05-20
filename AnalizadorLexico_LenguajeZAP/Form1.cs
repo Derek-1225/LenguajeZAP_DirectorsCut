@@ -301,21 +301,35 @@ namespace AnalizadorLexico_LenguajeZAP
                 char c = lineaConEspacio[i];
                 if (c == ',') // Detectamos la coma
                 {
-                    //Si hay algo previo a validar
+                    // Si hay algo previo a validar
                     if (acumulador.Length > 0)
                     {
+                        // 1. Probamos primero de forma limpia en la Base de Datos (ideal para palabras reservadas)
                         string resPrevio = ValidarCadena(matriz, acumulador);
-                        if (resPrevio == "IDEN") resPrevio = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+
+                        // 2. Si da error o es un IDEN genérico, aplicamos el rescate manual
+                        if (resPrevio.StartsWith("ER") || resPrevio == "CADENA_NO_VALIDA" || resPrevio == "IDEN")
+                        {
+                            if (acumulador.StartsWith("$"))
+                            {
+                                resPrevio = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                            }
+                            else if (char.IsDigit(acumulador[0]))
+                            {
+                                resPrevio = "CONENTERO";
+                            }
+                        }
+
                         VerificarSiEsError(resPrevio, acumulador, numLinea, rtbErrores, ref totalErrores);
                         sbLinea.Append(resPrevio + " ");
                         acumulador = "";
                     }
 
-                    //Si no hay nada que validar
+                    // Procesamos la coma de forma segura
                     string resComa = ValidarCadena(matriz, ",");
-                    if (resComa.Contains("ER") || resComa == "CADENA_NO_VALIDA")
+                    if (resComa.StartsWith("ER") || resComa == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resComa))
                     {
-                        resComa = "CS15";
+                        resComa = "CS13";
                     }
 
                     sbLinea.Append(resComa + " ");
@@ -385,7 +399,32 @@ namespace AnalizadorLexico_LenguajeZAP
                     {
                         if (acumulador.Length > 0)
                         {
+                            // 1. Intentamos evaluar la palabra limpia
                             string resPrev = ValidarCadena(matriz, acumulador);
+
+                            // 2. Si falla, probamos con el espacio simulado
+                            if (resPrev.StartsWith("ER") || resPrev == "CADENA_NO_VALIDA" || resPrev == "IDEN")
+                            {
+                                string intentoConEspacio = ValidarCadena(matriz, acumulador + " ");
+                                if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA")
+                                {
+                                    resPrev = intentoConEspacio;
+                                }
+                                else if (acumulador.StartsWith("$"))
+                                {
+                                    resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                                }
+                                else if (char.IsDigit(acumulador[0]))
+                                {
+                                    resPrev = "CONENTERO";
+                                }
+                            }
+
+                            if (resPrev == "IDEN")
+                            {
+                                resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                            }
+
                             VerificarSiEsError(resPrev, acumulador, numLinea, rtbErrores, ref totalErrores);
                             sbLinea.Append(resPrev + " ");
                             acumulador = "";
@@ -407,11 +446,39 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
                 //Caracteres Especiales
-                else if ("()[]{};*/!<>=".Contains(c.ToString()))
+                else if ("()[]{};*/!<>=:".Contains(c.ToString()))
                 {
                     if (acumulador.Length > 0)
                     {
+                        // 1. Intentamos evaluar la palabra limpia (Ideal para palabras reservadas como 'if')
                         string resAcumulado = ValidarCadena(matriz, acumulador);
+
+                        // 2. Si da error o es un IDEN genérico, probamos simulando el espacio (Ideal para 'switch', '$i', '5')
+                        if (resAcumulado.StartsWith("ER") || resAcumulado == "CADENA_NO_VALIDA" || resAcumulado == "IDEN")
+                        {
+                            string intentoConEspacio = ValidarCadena(matriz, acumulador + " ");
+
+                            // Si con espacio la BD responde con una Palabra Reservada (ej: PRXX) o un token válido, lo usamos
+                            if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA")
+                            {
+                                resAcumulado = intentoConEspacio;
+                            }
+                            // Si sigue dando problemas pero sabemos qué es por sus caracteres iniciales, lo rescatamos manualmente
+                            else if (acumulador.StartsWith("$"))
+                            {
+                                resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                            }
+                            else if (char.IsDigit(acumulador[0]))
+                            {
+                                resAcumulado = "CONENTERO";
+                            }
+                        }
+
+                        // Si después de todo el proceso se resolvió como IDEN puro de la matriz, lo indexamos
+                        if (resAcumulado == "IDEN")
+                        {
+                            resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                        }
 
                         VerificarSiEsError(resAcumulado, acumulador, numLinea, rtbErrores, ref totalErrores);
                         sbLinea.Append(resAcumulado + " ");
@@ -419,7 +486,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
 
                     string lexemaEspecial = c.ToString();
-                    //Caso para operadores como &&, ||, >=, !=
                     if (i + 1 < lineaConEspacio.Length)
                     {
                         char sig = lineaConEspacio[i + 1];
@@ -428,19 +494,23 @@ namespace AnalizadorLexico_LenguajeZAP
                             sbLinea.Append("COMEN ");
                             break;
                         }
-                        if ((c == '+' && sig == '+') || (c == '-' && sig == '-') || (c == '&' && sig == '&') || (c == '=' && sig == '=') ||
-                            (c == '|' && sig == '|') || (c == '>' && sig == '=') || (c == '<' && sig == '=') || (c == '!' && sig == '='))
+                        if ((c == '+' && sig == '+') || (c == '-' && sig == '-'))
+                        {
+                            lexemaEspecial += sig; i++;
+                        }
+                        else if ((c == '&' && sig == '&') || (c == '=' && sig == '=') || (c == '|' && sig == '|') ||
+                                 (c == '>' && sig == '=') || (c == '<' && sig == '=') || (c == '!' && sig == '='))
                         {
                             lexemaEspecial += sig; i++;
                         }
                     }
                     string resEspecial = ValidarCadena(matriz, lexemaEspecial);
-
-                    // Verificamos si el símbolo mismo es un error (ej: un & solo que no es &&)
+                    if (lexemaEspecial == ":" && (resEspecial.StartsWith("ER") || resEspecial == "CADENA_NO_VALIDA"))
+                    {
+                        resEspecial = "CS16"; // Usa aquí el código de token que le corresponda a los dos puntos (ej: CS16 o similar)
+                    }
                     VerificarSiEsError(resEspecial, lexemaEspecial, numLinea, rtbErrores, ref totalErrores);
-
                     sbLinea.Append(resEspecial + " ");
-
                 }
                 else
                 {
