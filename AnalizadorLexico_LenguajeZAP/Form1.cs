@@ -14,6 +14,7 @@ namespace AnalizadorLexico_LenguajeZAP
 {
     public partial class Form1 : Form
     {
+        private List<string> listaTokensExtraidos = new List<string>();
         public void ConfigurarNumeracion()
         {
             rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
@@ -161,6 +162,10 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.AppendText(Environment.NewLine + "----------------------------------------------------------" + Environment.NewLine);
             rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
             rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
+            if (contadorGlobal == 0)
+            {
+                AnalizadorSintactico();
+            }
         }        
 
         //Metodo para el editor de codigo fuente para evitar que se cambie la fuente de texto en caso de que se copie de un texto externo
@@ -359,31 +364,47 @@ namespace AnalizadorLexico_LenguajeZAP
                 //Cadenas
                 else if (c == '"')
                 {
-                    if (acumulador.Length > 0)
-                    {
-                        string resPre = ValidarCadena(matriz, acumulador);
-                        VerificarSiEsError(resPre, acumulador, numLinea, rtbErrores, ref totalErrores);
-                        sbLinea.Append(resPre + " ");
-                        acumulador = "";
-                    }
+                    string cadena = "";
+                    i++; // Avanzar para saltar la comilla inicial
+                    bool seCerraronComillas = false;
 
-                    string cadena = c.ToString();
-                    i++;
-                    while (i < lineaConEspacio.Length && lineaConEspacio[i] != '"')
+                    while (i < lineaConEspacio.Length)
                     {
+                        if (lineaConEspacio[i] == '"')
+                        {
+                            seCerraronComillas = true;
+                            break; // Encontró la comilla de cierre legítima
+                        }
                         cadena += lineaConEspacio[i];
                         i++;
                     }
-                    if (i < lineaConEspacio.Length)
+
+                    string resCadena;
+
+                    if (seCerraronComillas)
                     {
-                        cadena += '"';
+                        // 1. Le preguntamos a la base de datos pasando las comillas reales
+                        resCadena = ValidarCadena(matriz, "\"" + cadena + "\"");
+
+                        // 2. Si la base de datos falla pero sabemos que estructuralmente está bien cerrada,
+                        // puedes usar tu respaldo manual (cambia "CAD" por el código exacto que uses si no es ese)
+                        if (resCadena.StartsWith("ER") || resCadena == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resCadena))
+                        {
+                            resCadena = "CAD";
+                        }
                     }
-                    string cadenaParaValidar = cadena.Replace(' ', '_');
+                    else
+                    {
+                        // ERROR: La línea terminó y nunca se pusieron las comillas de cierre
+                        resCadena = "ER02 \"Error: Cadena constante sin cerrar\"";
+                    }
 
-                    string resCad = ValidarCadena(matriz, cadenaParaValidar);
-                    VerificarSiEsError(resCad, cadena, numLinea, rtbErrores, ref totalErrores);
+                    // Pasamos el resultado por tu verificador de errores
+                    VerificarSiEsError(resCadena, "\"" + cadena + (seCerraronComillas ? "\"" : ""), numLinea, rtbErrores, ref totalErrores);
 
-                    sbLinea.Append(resCad + " ");
+                    // Agregamos el token resultante al registro
+                    sbLinea.Append(resCadena + " ");
+                    continue;
                 }
                 else if ("+-".Contains(c.ToString()))
                 {
@@ -461,6 +482,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             // Si con espacio la BD responde con una Palabra Reservada (ej: PRXX) o un token válido, lo usamos
                             if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA")
                             {
+
                                 resAcumulado = intentoConEspacio;
                             }
                             // Si sigue dando problemas pero sabemos qué es por sus caracteres iniciales, lo rescatamos manualmente
@@ -670,6 +692,76 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             rTxtCodigoFuente.ReadOnly = false;
             rTxtCodigoFuente.BackColor = SystemColors.Window;
+        }
+
+        public void AnalizadorSintactico() {
+            listaTokensExtraidos.Clear();
+
+            string contenidoActual = rTxtTokens.Text;
+
+            string contenidoNormalizado = contenidoActual.Replace("\r\n", "\n").Replace("\r", "\n");
+            contenidoNormalizado = contenidoNormalizado.Replace("\n", " \n ");
+
+            string[] palabras = contenidoNormalizado.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string token in palabras)
+            {
+                if (token == "\n")
+                {
+                    listaTokensExtraidos.Add("\n");
+                }
+                else
+                {
+                    string tokenLimpio = token.Trim();
+                    if (!string.IsNullOrEmpty(tokenLimpio))
+                    {
+                        listaTokensExtraidos.Add(tokenLimpio);
+                    }
+                }
+            }
+            ZapParsingResult resultado = PushdownParser.ExecuteParser(listaTokensExtraidos);
+            rTxtErrores.Clear();
+            if (resultado.Success)
+            {
+                rTxtErrores.SelectionColor = Color.Green;
+                rTxtErrores.AppendText("¡Análisis sintáctico completado con éxito! Estructura válida.\n");
+                MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                rTxtErrores.SelectionColor = Color.Red;
+                rTxtErrores.AppendText("=== ERRORES SINTÁCTICOS DETECTADOS ===\n\n");
+
+                foreach (string error in resultado.Errors)
+                {
+                    rTxtErrores.SelectionColor = Color.DarkRed;
+                    rTxtErrores.AppendText($"• {error}\n");
+                }
+
+                MessageBox.Show("Se encontraron fallas sintácticas en el orden de los tokens.", "Error de Sintaxis", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            /*foreach (string paso in resultado.TraceSteps)
+            {
+                if (paso.StartsWith("[MATCH]"))
+                {
+                    rTxtRecorrido.SelectionColor = Color.Blue;
+                }
+                else if (paso.Contains("-> ε"))
+                {
+                    rTxtRecorrido.SelectionColor = Color.Gray;
+                }
+                else if (paso.StartsWith("[REGLA APLICADA]"))
+                {
+                    rTxtRecorrido.SelectionColor = Color.DarkGreen;
+                }
+                else
+                {
+                    rTxtRecorrido.SelectionColor = Color.Black;
+                }
+
+                rTxtRecorrido.AppendText(paso + Environment.NewLine);
+            }*/
+            //tabAnalizador.SelectedIndex = 1;
         }
     }
 }
