@@ -609,9 +609,6 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 Id = nuevoID,
                 Lexema = lexema,
-                TipoDato = "Desconocido",
-                Categoria = "Variable",
-                Valor = "Sin Asignar"
             };
 
             tablaSimbolos.Add(lexema, nuevoSimbolo);
@@ -793,16 +790,14 @@ namespace AnalizadorLexico_LenguajeZAP
         }*/
         //tabAnalizador.SelectedIndex = 1;
 
-        // Actualizar tipo de dato durante las declaraciones (ej. al procesar "int $x")
         public void AnalizadorSemantico()
         {
             string codigo = rTxtCodigoFuente.Text;
 
-            // Removemos comentarios para evitar falsos positivos
+            string valorGlobal;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
 
             // 1. Patrón para declaraciones con asignación inicial (ej: int $A = 10; o double $B = 3.14;)
-            // Grupo 1: Tipo | Grupo 2: Identificador | Grupo 3: Valor o Expresión
             string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool)\b\s+(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
 
             // 2. Patrón para declaraciones sin inicializar (ej: int $A;)
@@ -817,12 +812,12 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 string tipo = m.Groups[1].Value.ToLower();
                 string iden = m.Groups[2].Value;
-                string valor = m.Groups[3].Value.Trim();
+                string valor = m.Groups[3].Value;
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
                     tablaSimbolos[iden].TipoDato = tipo;
-                    tablaSimbolos[iden].Valor = valor; // Extrae "10"
+                    tablaSimbolos[iden].Valor = valor;
                 }
             }
 
@@ -848,16 +843,13 @@ namespace AnalizadorLexico_LenguajeZAP
             foreach (Match m in asignaciones)
             {
                 string iden = m.Groups[1].Value;
-                string valor = m.Groups[2].Value.Trim();
+                string valor = m.Groups[2].Value;
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    // Solo actualizamos el valor si la variable ya fue declarada previamente
                     tablaSimbolos[iden].Valor = valor;
                 }
             }
-
-            // Refrescar la vista con los tipos y valores resueltos
             ActualizarDataGrid();
         }
 
@@ -866,7 +858,7 @@ namespace AnalizadorLexico_LenguajeZAP
             dtgTablaSimbolos.Rows.Clear();
             foreach (var item in tablaSimbolos.Values)
             {
-                dtgTablaSimbolos.Rows.Add(item.Id, item.Lexema, item.TipoDato, item.Categoria, item.Valor ?? "Sin Asignar");
+                dtgTablaSimbolos.Rows.Add(item.Id, item.Lexema, item.TipoDato, item.Valor);
             }
         }
     }
