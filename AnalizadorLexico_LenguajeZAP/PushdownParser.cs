@@ -13,7 +13,7 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             { "S", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "PR27", new List<string> { "PR27", "PR20", "BODY", "PR12", "PR20" } },
-                { "ID",   new List<string> { "ID", "OPASIG", "EXP", "CS15" } },
+                { "ID",   new List<string> {"ID", "OPASIG", "EXP", "CS15" } },
                 { "PR19", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
                 { "PR11", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
                 { "PR13", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
