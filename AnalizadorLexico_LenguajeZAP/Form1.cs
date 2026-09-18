@@ -843,14 +843,59 @@ namespace AnalizadorLexico_LenguajeZAP
             foreach (Match m in asignaciones)
             {
                 string iden = m.Groups[1].Value;
-                string valor = m.Groups[2].Value;
+                string expresionOriginal = m.Groups[2].Value.Trim(); // Captura "$SU+$VA"
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    tablaSimbolos[iden].Valor = valor;
+                    // EVALUAMOS LA EXPRESIÓN ANTES DE ASIGNARLA
+                    string valorResuelto = EvaluarExpresion(expresionOriginal);
+
+                    tablaSimbolos[iden].Valor = valorResuelto; // Guarda "3" en lugar de "$SU+$VA"
                 }
             }
             ActualizarDataGrid();
+        }
+
+        private string EvaluarExpresion(string expresion)
+        {
+            string expEvaluada = expresion;
+
+            // 1. Buscar todas las variables dentro de la expresión (ej. $SU, $VA)
+            MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
+
+            foreach (Match varMatch in variables)
+            {
+                string nombreVar = varMatch.Value;
+
+                // Si la variable existe en la tabla de símbolos, obtenemos su valor numérico
+                if (tablaSimbolos.ContainsKey(nombreVar))
+                {
+                    string valorActual = tablaSimbolos[nombreVar].Valor?.ToString();
+
+                    // Si el valor está vacío o no es numérico, por defecto usamos "0" para no romper la suma
+                    if (string.IsNullOrEmpty(valorActual) || valorActual == "Sin asignar" || valorActual == "null")
+                    {
+                        valorActual = "0";
+                    }
+
+                    // Reemplazamos la variable en la cadena por su valor numérico (ej. $SU -> 1)
+                    expEvaluada = expEvaluada.Replace(nombreVar, valorActual);
+                }
+            }
+
+            try
+            {
+                // 2. Evaluar matemáticamente la cadena resultante (ej. "1+2")
+                DataTable dt = new DataTable();
+                var resultado = dt.Compute(expEvaluada, "");
+                return resultado.ToString();
+            }
+            catch
+            {
+                // Si ocurre un error (por ejemplo, si era una cadena de texto y no una suma matemática)
+                // se devuelve la expresión original.
+                return expresion;
+            }
         }
 
         private void ActualizarDataGrid()
