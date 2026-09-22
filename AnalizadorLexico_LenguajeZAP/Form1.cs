@@ -858,42 +858,67 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private string EvaluarExpresion(string expresion)
         {
-            string expEvaluada = expresion;
+            if (string.IsNullOrWhiteSpace(expresion)) return "";
 
-            // 1. Buscar todas las variables dentro de la expresión (ej. $SU, $VA)
+            // 1. Detectar si la expresión contiene comillas directamente (ej. "Hola" + "Mundo")
+            bool esOperacionCadena = expresion.Contains("\"");
+
+            // 2. Buscar y reemplazar todas las variables por sus valores actuales
             MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
 
             foreach (Match varMatch in variables)
             {
                 string nombreVar = varMatch.Value;
 
-                // Si la variable existe en la tabla de símbolos, obtenemos su valor numérico
                 if (tablaSimbolos.ContainsKey(nombreVar))
                 {
-                    string valorActual = tablaSimbolos[nombreVar].Valor?.ToString();
+                    var simbolo = tablaSimbolos[nombreVar];
+                    string valorActual = simbolo.Valor?.ToString() ?? "";
 
-                    // Si el valor está vacío o no es numérico, por defecto usamos "0" para no romper la suma
-                    if (string.IsNullOrEmpty(valorActual) || valorActual == "Sin asignar" || valorActual == "null")
+                    // Si la variable es de tipo string o su valor contiene comillas, es una operación de cadenas
+                    if (simbolo.TipoDato == "string" || valorActual.StartsWith("\""))
                     {
-                        valorActual = "0";
+                        esOperacionCadena = true;
                     }
 
-                    // Reemplazamos la variable en la cadena por su valor numérico (ej. $SU -> 1)
-                    expEvaluada = expEvaluada.Replace(nombreVar, valorActual);
+                    // Si no tiene valor asignado aún
+                    if (valorActual == "Sin asignar" || valorActual == "null")
+                    {
+                        valorActual = (simbolo.TipoDato == "string" || esOperacionCadena) ? "\"\"" : "0";
+                    }
+
+                    // Reemplazamos la variable en la expresión por su valor real
+                    expresion = expresion.Replace(nombreVar, valorActual);
                 }
             }
 
+            // 3. SI ES UNA SUMA/CONCATENACIÓN DE CADENAS
+            if (esOperacionCadena)
+            {
+                // Dividimos los términos por el operador '+'
+                string[] partes = expresion.Split('+');
+                string resultadoCadena = "";
+
+                foreach (string parte in partes)
+                {
+                    // Limpiamos espacios laterales y removemos las comillas dobles extremas
+                    string terminoLimpio = parte.Trim().Trim('"');
+                    resultadoCadena += terminoLimpio;
+                }
+
+                // Retornamos el resultado delimitado entre comillas para la Tabla de Símbolos
+                return $"\"{resultadoCadena}\"";
+            }
+
+            // 4. SI ES UNA OPERACIÓN NUMÉRICA (int/float/double)
             try
             {
-                // 2. Evaluar matemáticamente la cadena resultante (ej. "1+2")
                 DataTable dt = new DataTable();
-                var resultado = dt.Compute(expEvaluada, "");
+                var resultado = dt.Compute(expresion, "");
                 return resultado.ToString();
             }
             catch
             {
-                // Si ocurre un error (por ejemplo, si era una cadena de texto y no una suma matemática)
-                // se devuelve la expresión original.
                 return expresion;
             }
         }
