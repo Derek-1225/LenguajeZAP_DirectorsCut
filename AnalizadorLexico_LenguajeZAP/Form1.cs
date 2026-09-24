@@ -15,6 +15,9 @@ namespace AnalizadorLexico_LenguajeZAP
     public partial class Form1 : Form
     {
         private List<string> listaTokensExtraidos = new List<string>();
+        private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
+        private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
+        // ------------------------------------------------
         public void ConfigurarNumeracion()
         {
             rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
@@ -119,7 +122,7 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         //Conexion de SQL Server a la base de datos donde se encuentra la matriz de transicion
-        string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
+        string connectionString = "Server=localhost; Database=MatrizZAP; Integrated Security=True; TrustServerCertificate=True;";
         public Form1()
         {
             InitializeComponent();
@@ -136,6 +139,8 @@ namespace AnalizadorLexico_LenguajeZAP
             // Limpiamos todo antes de empezar
             dtgTablaSimbolos.Rows.Clear();
             tablaSimbolos.Clear();
+            listaTokensCompletos.Clear(); // <-- AGREGAR ESTA LÍNEA
+            tablaTiposVariables.Clear();
             contadorID = 1;
             rTxtTokens.Clear();
             rTxtErrores.Clear();
@@ -558,6 +563,11 @@ namespace AnalizadorLexico_LenguajeZAP
                 esError = false;
             }
 
+            if (!esError && !string.IsNullOrWhiteSpace(resultado))
+            {
+                listaTokensCompletos.Add((resultado.Trim(), lexema.Trim(), linea));
+            }
+
             if (esError)
             {
                 total++;
@@ -726,6 +736,8 @@ namespace AnalizadorLexico_LenguajeZAP
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis sintáctico completado con éxito! Estructura válida.\n");
                 MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                rTxtErrores.AppendText("\n=== INICIANDO ANÁLISIS SEMÁNTICO ===\n\n");
+                AnalizadorSemantico();
             }
             else
             {
@@ -762,6 +774,112 @@ namespace AnalizadorLexico_LenguajeZAP
                 rTxtRecorrido.AppendText(paso + Environment.NewLine);
             }*/
             //tabAnalizador.SelectedIndex = 1;
+        }
+        public void AnalizadorSemantico()
+        {
+            int erroresSemanticos = 0;
+
+            for (int i = 0; i < listaTokensCompletos.Count; i++)
+            {
+                var actual = listaTokensCompletos[i];
+
+                // 1. DETECCIÓN DE DECLARACIÓN DE VARIABLES
+                // PR19 = int, PR28 = string, PR02 = bool, PR11 = double, etc.
+                if (actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11")
+                {
+                    if (i + 1 < listaTokensCompletos.Count)
+                    {
+                        var siguiente = listaTokensCompletos[i + 1];
+                        if (siguiente.Token.StartsWith("IDEN"))
+                        {
+                            // Registramos en la tabla semántica: Ej. IDEN1 es de tipo PR19 (int)
+                            tablaTiposVariables[siguiente.Token] = actual.Token;
+                        }
+                    }
+                }
+
+                // 2. DETECCIÓN DE ASIGNACIONES (Tipos y Booleanos)
+                // Buscamos el patrón: Variable (IDEN) -> Asignación (= OPASIG) -> Valor
+                if (actual.Token.StartsWith("IDEN") && i + 2 < listaTokensCompletos.Count)
+                {
+                    var operador = listaTokensCompletos[i + 1];
+                    var valor = listaTokensCompletos[i + 2];
+
+                    if (operador.Token == "OPASIG") // Si es el signo igual '='
+                    {
+                        if (tablaTiposVariables.ContainsKey(actual.Token))
+                        {
+                            string tipoVariable = tablaTiposVariables[actual.Token];
+
+                            // Si el valor asignado es OTRA variable, verificamos que sean del mismo tipo
+                            if (valor.Token.StartsWith("IDEN"))
+                            {
+                                if (tablaTiposVariables.ContainsKey(valor.Token))
+                                {
+                                    string tipoAsignado = tablaTiposVariables[valor.Token];
+                                    if (tipoVariable != tipoAsignado)
+                                    {
+                                        ImprimirErrorSemantico(actual.Linea, $"Incompatibilidad de tipos. No puedes asignar una variable tipo '{tipoAsignado}' a la variable '{actual.Lexema}' de tipo '{tipoVariable}'.");
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // A. Validar variables INT (PR19)
+                                if (tipoVariable == "PR19" && valor.Token != "CONENTERO")
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'int'. No se le puede asignar el valor {valor.Lexema}.");
+                                    erroresSemanticos++;
+                                }
+
+                                // B. Validar variables STRING (PR28)
+                                else if (tipoVariable == "PR28" && valor.Token != "CAD")
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'string'. No se le puede asignar el valor {valor.Lexema}.");
+                                    erroresSemanticos++;
+                                }
+
+                                // C. Validar variables BOOL (PR02) -> ¡SOLO 0 y 1!
+                                else if (tipoVariable == "PR02")
+                                {
+                                    if (valor.Lexema != "0" && valor.Lexema != "1")
+                                    {
+                                        ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable booleana '{actual.Lexema}' solo admite los valores 0 o 1. Se encontró '{valor.Lexema}'.");
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable '{actual.Lexema}' no ha sido declarada con un tipo de dato.");
+                            erroresSemanticos++;
+                        }
+                    }
+                }
+            }
+
+            if (erroresSemanticos > 0)
+            {
+                MessageBox.Show("Se detectaron errores semánticos (incompatibilidad de tipos o valores incorrectos). Revisa la consola de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                rTxtErrores.SelectionColor = Color.Green;
+                rTxtErrores.AppendText("¡Análisis semántico completado con éxito! Tipos de datos correctos.\n");
+            }
+        }
+
+        private void ImprimirErrorSemantico(int linea, string mensaje)
+        {
+            int inicio = rTxtErrores.TextLength;
+            string textoError = $"• LÍNEA {linea}: {mensaje}\n";
+            rTxtErrores.AppendText(textoError);
+            rTxtErrores.Select(inicio, textoError.Length);
+            rTxtErrores.SelectionColor = Color.DarkOrange; // Naranja para errores semánticos
+            rTxtErrores.DeselectAll();
+            rTxtErrores.SelectionColor = Color.Black;
         }
     }
 }
