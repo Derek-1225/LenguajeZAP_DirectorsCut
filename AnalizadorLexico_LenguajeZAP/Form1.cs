@@ -763,7 +763,9 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 rTxtErrores.AppendText("\n=== INICIANDO ANÁLISIS SEMÁNTICO ===\n\n");
                 AnalizadorSemantico();
+
                 return true;
+
             }
             else
             {
@@ -803,9 +805,10 @@ namespace AnalizadorLexico_LenguajeZAP
         }*/
         //tabAnalizador.SelectedIndex = 1;
 
-        public void AnalizadorSemantico()
+        public void EvaluarValoresVariables()
         {
             string codigo = rTxtCodigoFuente.Text;
+        
 
             string valorGlobal;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
@@ -944,7 +947,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 dtgTablaSimbolos.Rows.Add(item.Id, item.Lexema, item.TipoDato, item.Valor);
             }
         }
-        public void AnalizadorSemantico()
+        public void ValidarTiposSemanticos()
         {
             int erroresSemanticos = 0;
 
@@ -1049,6 +1052,14 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.SelectionColor = Color.DarkOrange; // Naranja para errores semánticos
             rTxtErrores.DeselectAll();
             rTxtErrores.SelectionColor = Color.Black;
+        }
+        public void AnalizadorSemantico()
+        {
+
+            EvaluarValoresVariables();
+
+      
+            ValidarTiposSemanticos();
         }
     }
 }
