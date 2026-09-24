@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -169,7 +170,14 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
             if (contadorGlobal == 0)
             {
-                AnalizadorSintactico();
+                bool resultadoSintactico;
+                resultadoSintactico=AnalizadorSintactico();
+
+                if (resultadoSintactico)
+                {
+                   AnalizadorSemantico();
+                }
+
             }
         }        
 
@@ -586,8 +594,16 @@ namespace AnalizadorLexico_LenguajeZAP
 
         /*-----------------------------FIN DE MANEJO DE ERRORES-----------------------------*/
 
-        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/        
-        Dictionary<string, int> tablaSimbolos = new Dictionary<string, int>();
+        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/
+        public class Simbolo
+        {
+            public int Id { get; set; }
+            public string Lexema { get; set; }
+            public string TipoDato { get; set; }  // "entero", "flotante", etc.
+            public string Categoria { get; set; } // "Variable", "Constante"
+            public object Valor { get; set; }     // Valor asignado en ejecución/evaluación
+        }
+        Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
         int contadorID = 1;
 
         private string ObtenerTokenIdentificador(string lexema, DataGridView dgvSimbolos)
@@ -595,18 +611,25 @@ namespace AnalizadorLexico_LenguajeZAP
             // Si ya existe en la tabla, devolvemos su ID asignado
             if (tablaSimbolos.ContainsKey(lexema))
             {
-                return "IDEN" + tablaSimbolos[lexema];
+                return "IDEN" + tablaSimbolos[lexema].Id;
             }
 
-            // Si es nuevo, lo registramos
             int nuevoID = contadorID++;
-            tablaSimbolos.Add(lexema, nuevoID);
+            Simbolo nuevoSimbolo = new Simbolo
+            {
+                Id = nuevoID,
+                Lexema = lexema,
+            };
 
-            // Lo agregamos al datagridview
-            dgvSimbolos.Rows.Add(nuevoID, lexema, "", "");
+            tablaSimbolos.Add(lexema, nuevoSimbolo);
+
+            // Reflejar en la interfaz gráfica (DataGridView)
+            dgvSimbolos.Rows.Add(nuevoSimbolo.Id, nuevoSimbolo.Lexema, nuevoSimbolo.TipoDato, nuevoSimbolo.Categoria, nuevoSimbolo.Valor);
 
             return "IDEN" + nuevoID;
         }
+
+
 
         //Metodo para guardar el archivo de codigo fuente
         private void btnGuardarArchivo_Click(object sender, EventArgs e)
@@ -704,7 +727,8 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtCodigoFuente.BackColor = SystemColors.Window;
         }
 
-        public void AnalizadorSintactico() {
+        public bool AnalizadorSintactico()
+        {
             listaTokensExtraidos.Clear();
 
             string contenidoActual = rTxtTokens.Text;
@@ -736,8 +760,10 @@ namespace AnalizadorLexico_LenguajeZAP
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis sintáctico completado con éxito! Estructura válida.\n");
                 MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                 rTxtErrores.AppendText("\n=== INICIANDO ANÁLISIS SEMÁNTICO ===\n\n");
                 AnalizadorSemantico();
+                return true;
             }
             else
             {
@@ -751,29 +777,172 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
 
                 MessageBox.Show("Se encontraron fallas sintácticas en el orden de los tokens.", "Error de Sintaxis", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
-            /*foreach (string paso in resultado.TraceSteps)
+        }
+        /*foreach (string paso in resultado.TraceSteps)
+        {
+            if (paso.StartsWith("[MATCH]"))
             {
-                if (paso.StartsWith("[MATCH]"))
+                rTxtRecorrido.SelectionColor = Color.Blue;
+            }
+            else if (paso.Contains("-> ε"))
+            {
+                rTxtRecorrido.SelectionColor = Color.Gray;
+            }
+            else if (paso.StartsWith("[REGLA APLICADA]"))
+            {
+                rTxtRecorrido.SelectionColor = Color.DarkGreen;
+            }
+            else
+            {
+                rTxtRecorrido.SelectionColor = Color.Black;
+            }
+
+            rTxtRecorrido.AppendText(paso + Environment.NewLine);
+        }*/
+        //tabAnalizador.SelectedIndex = 1;
+
+        public void AnalizadorSemantico()
+        {
+            string codigo = rTxtCodigoFuente.Text;
+
+            string valorGlobal;
+            string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
+
+            // 1. Patrón para declaraciones con asignación inicial (ej: int $A = 10; o double $B = 3.14;)
+            string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool)\b\s+(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
+
+            // 2. Patrón para declaraciones sin inicializar (ej: int $A;)
+            string patronDeclaracionSinValor = @"\b(int|double|float|string|char|bool)\b\s+(\$[a-zA-Z0-9_]+)\s*;";
+
+            // 3. Patrón para reasignaciones posteriores (ej: $A = 20; o $SU = $SU + $VA;)
+            string patronAsignacion = @"(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
+
+            // --- A) Procesar Declaraciones con Inicialización (int $A = 10;) ---
+            MatchCollection declaracionesConValor = Regex.Matches(codigoLimpio, patronDeclaracionConValor);
+            foreach (Match m in declaracionesConValor)
+            {
+                string tipo = m.Groups[1].Value.ToLower();
+                string iden = m.Groups[2].Value;
+                string valor = m.Groups[3].Value;
+
+                if (tablaSimbolos.ContainsKey(iden))
                 {
-                    rTxtRecorrido.SelectionColor = Color.Blue;
+                    tablaSimbolos[iden].TipoDato = tipo;
+                    tablaSimbolos[iden].Valor = valor;
                 }
-                else if (paso.Contains("-> ε"))
+            }
+
+            // --- B) Procesar Declaraciones Sin Valor Inicial (int $A;) ---
+            MatchCollection declaracionesSinValor = Regex.Matches(codigoLimpio, patronDeclaracionSinValor);
+            foreach (Match m in declaracionesSinValor)
+            {
+                string tipo = m.Groups[1].Value.ToLower();
+                string iden = m.Groups[2].Value;
+
+                if (tablaSimbolos.ContainsKey(iden))
                 {
-                    rTxtRecorrido.SelectionColor = Color.Gray;
+                    tablaSimbolos[iden].TipoDato = tipo;
+                    if (tablaSimbolos[iden].Valor == null || tablaSimbolos[iden].Valor.ToString() == "Sin asignar")
+                    {
+                        tablaSimbolos[iden].Valor = "null";
+                    }
                 }
-                else if (paso.StartsWith("[REGLA APLICADA]"))
+            }
+
+            // --- C) Procesar Reasignaciones o Expresiones ($C = $C + 1;) ---
+            MatchCollection asignaciones = Regex.Matches(codigoLimpio, patronAsignacion);
+            foreach (Match m in asignaciones)
+            {
+                string iden = m.Groups[1].Value;
+                string expresionOriginal = m.Groups[2].Value.Trim(); // Captura "$SU+$VA"
+
+                if (tablaSimbolos.ContainsKey(iden))
                 {
-                    rTxtRecorrido.SelectionColor = Color.DarkGreen;
+                    // EVALUAMOS LA EXPRESIÓN ANTES DE ASIGNARLA
+                    string valorResuelto = EvaluarExpresion(expresionOriginal);
+
+                    tablaSimbolos[iden].Valor = valorResuelto; // Guarda "3" en lugar de "$SU+$VA"
                 }
-                else
+            }
+            ActualizarDataGrid();
+        }
+
+        private string EvaluarExpresion(string expresion)
+        {
+            if (string.IsNullOrWhiteSpace(expresion)) return "";
+
+            // 1. Detectar si la expresión contiene comillas directamente (ej. "Hola" + "Mundo")
+            bool esOperacionCadena = expresion.Contains("\"");
+
+            // 2. Buscar y reemplazar todas las variables por sus valores actuales
+            MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
+
+            foreach (Match varMatch in variables)
+            {
+                string nombreVar = varMatch.Value;
+
+                if (tablaSimbolos.ContainsKey(nombreVar))
                 {
-                    rTxtRecorrido.SelectionColor = Color.Black;
+                    var simbolo = tablaSimbolos[nombreVar];
+                    string valorActual = simbolo.Valor?.ToString() ?? "";
+
+                    // Si la variable es de tipo string o su valor contiene comillas, es una operación de cadenas
+                    if (simbolo.TipoDato == "string" || valorActual.StartsWith("\""))
+                    {
+                        esOperacionCadena = true;
+                    }
+
+                    // Si no tiene valor asignado aún
+                    if (valorActual == "Sin asignar" || valorActual == "null")
+                    {
+                        valorActual = (simbolo.TipoDato == "string" || esOperacionCadena) ? "\"\"" : "0";
+                    }
+
+                    // Reemplazamos la variable en la expresión por su valor real
+                    expresion = expresion.Replace(nombreVar, valorActual);
+                }
+            }
+
+            // 3. SI ES UNA SUMA/CONCATENACIÓN DE CADENAS
+            if (esOperacionCadena)
+            {
+                // Dividimos los términos por el operador '+'
+                string[] partes = expresion.Split('+');
+                string resultadoCadena = "";
+
+                foreach (string parte in partes)
+                {
+                    // Limpiamos espacios laterales y removemos las comillas dobles extremas
+                    string terminoLimpio = parte.Trim().Trim('"');
+                    resultadoCadena += terminoLimpio;
                 }
 
-                rTxtRecorrido.AppendText(paso + Environment.NewLine);
-            }*/
-            //tabAnalizador.SelectedIndex = 1;
+                // Retornamos el resultado delimitado entre comillas para la Tabla de Símbolos
+                return $"\"{resultadoCadena}\"";
+            }
+
+            // 4. SI ES UNA OPERACIÓN NUMÉRICA (int/float/double)
+            try
+            {
+                DataTable dt = new DataTable();
+                var resultado = dt.Compute(expresion, "");
+                return resultado.ToString();
+            }
+            catch
+            {
+                return expresion;
+            }
+        }
+
+        private void ActualizarDataGrid()
+        {
+            dtgTablaSimbolos.Rows.Clear();
+            foreach (var item in tablaSimbolos.Values)
+            {
+                dtgTablaSimbolos.Rows.Add(item.Id, item.Lexema, item.TipoDato, item.Valor);
+            }
         }
         public void AnalizadorSemantico()
         {
