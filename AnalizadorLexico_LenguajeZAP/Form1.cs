@@ -18,7 +18,28 @@ namespace AnalizadorLexico_LenguajeZAP
         private List<string> listaTokensExtraidos = new List<string>();
         private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
         private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
+
         // ------------------------------------------------
+        // 1. ESTRUCTURA Y TABLA DE SÍMBOLOS CON SCOPE Y MEMORIA
+        // ------------------------------------------------
+        public class Simbolo
+        {
+            public int Id { get; set; }
+            public string Lexema { get; set; }
+            public string TipoDato { get; set; }     // "int", "float", "string", "char", "boolean"
+            public string Scope { get; set; }        // "Global" o "Local"
+            public int Direccion { get; set; }       // Desplazamiento de memoria en bytes (Offset)
+            public bool EstaInicializada { get; set; } // Control de uso sin inicializar
+            public object Valor { get; set; }        // Valor asignado
+        }
+
+        private Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
+        private int contadorID = 1;
+
+        // Contadores de offset de memoria
+        private int offsetGlobal = 0;
+        private int offsetLocal = 0;
+
         public void ConfigurarNumeracion()
         {
             rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
@@ -56,6 +77,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
             rTxtNumeros.Text = sb.ToString();
         }
+
         private void ActualizarNumerosTokens(object sender, EventArgs e)
         {
             Point pos = new Point(0, 0);
@@ -69,7 +91,6 @@ namespace AnalizadorLexico_LenguajeZAP
 
             StringBuilder sb = new StringBuilder();
 
-            // Si no hay tokens generados, mostramos el 1
             if (string.IsNullOrEmpty(rTxtTokens.Text))
             {
                 sb.AppendLine("1");
@@ -87,13 +108,8 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void AplicarColorErrores(RichTextBox rtb)
         {
-            // Guardamos donde estaba el usuario para que no salte el cursor
             int posicionOriginal = rtb.SelectionStart;
-
-            // El texto completo de los tokens
             string contenido = rtb.Text;
-
-            // Buscamos cada token separado por espacios o saltos de línea
             string[] tokens = contenido.Split(new char[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
             int busquedaDesde = 0;
@@ -101,29 +117,24 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 if (t.StartsWith("ER"))
                 {
-                    // Buscamos la posición exacta de la palabra "ERxx"
                     int inicio = rtb.Find(t, busquedaDesde, RichTextBoxFinds.WholeWord);
-
                     if (inicio != -1)
                     {
                         rtb.Select(inicio, t.Length);
                         rtb.SelectionColor = Color.Red;
-                        rtb.SelectionFont = new Font(rtb.Font, FontStyle.Bold); // Lo ponemos en negrita también
-
-                        // Actualizamos para no buscar siempre desde el principio
+                        rtb.SelectionFont = new Font(rtb.Font, FontStyle.Bold);
                         busquedaDesde = inicio + t.Length;
                     }
                 }
             }
 
-            // Al terminar, regresamos el color a negro y el cursor a su lugar
             rtb.SelectionStart = posicionOriginal;
             rtb.SelectionLength = 0;
             rtb.SelectionColor = Color.Black;
         }
 
-        //Conexion de SQL Server a la base de datos donde se encuentra la matriz de transicion
-        string connectionString = "Server=localhost; Database=MatrizZAP; Integrated Security=True; TrustServerCertificate=True;";
+        string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
+
         public Form1()
         {
             InitializeComponent();
@@ -131,76 +142,66 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            //Configuramos la numeracion del editor de texto al cargar el ejecutable
             ConfigurarNumeracion();
         }
 
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
-            // Limpiamos todo antes de empezar
             dtgTablaSimbolos.Rows.Clear();
             tablaSimbolos.Clear();
-            listaTokensCompletos.Clear(); // <-- AGREGAR ESTA LÍNEA
+            listaTokensCompletos.Clear();
             tablaTiposVariables.Clear();
             contadorID = 1;
+            offsetGlobal = 0;
+            offsetLocal = 0;
+
             rTxtTokens.Clear();
             rTxtErrores.Clear();
             int contadorGlobal = 0;
             DataTable matriz = ObtenerMatriz();
-            // Encabezado para la lista de errores
+
             rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
             rTxtErrores.AppendText("LÍNEA\tERROR" + Environment.NewLine);
             rTxtErrores.AppendText("----------------------------------------------------------" + Environment.NewLine);
 
-            // Obtenemos las líneas del editor
             string[] lineas = rTxtCodigoFuente.Lines;
 
             for (int i = 0; i < lineas.Length; i++)
             {
-                // Mandamos a llamar el metodo que generará el archivo de tokens y los errores que puedan presentarse
                 string lineaDeTokens = ProcesarLineaParaTokens(matriz, lineas[i], i + 1, rTxtErrores, ref contadorGlobal);
-
-                // Escribimos en el archivo de tokens manteniendo la estructura de renglones
                 rTxtTokens.AppendText(lineaDeTokens + Environment.NewLine);
             }
             AplicarColorErrores(rTxtTokens);
-            // Pie de reporte con el total
+
             rTxtErrores.AppendText(Environment.NewLine + "----------------------------------------------------------" + Environment.NewLine);
             rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
             rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
+
             if (contadorGlobal == 0)
             {
-                bool resultadoSintactico;
-                resultadoSintactico=AnalizadorSintactico();
-
+                bool resultadoSintactico = AnalizadorSintactico();
                 if (resultadoSintactico)
                 {
-                   AnalizadorSemantico();
+                    AnalizadorSemantico();
                 }
-
             }
-        }        
+        }
 
-        //Metodo para el editor de codigo fuente para evitar que se cambie la fuente de texto en caso de que se copie de un texto externo
         private void PegarTextoPlano()
         {
             if (Clipboard.ContainsText())
             {
                 string texto = Clipboard.GetText();
-
                 int inicio = rTxtCodigoFuente.SelectionStart;
 
                 rTxtCodigoFuente.SelectedText = texto;
-
-                // Aplicar fuente solo al texto pegado
                 rTxtCodigoFuente.Select(inicio, texto.Length);
                 rTxtCodigoFuente.SelectionFont = new Font("Consolas", 10.2f);
-
-                // Restaurar cursor
                 rTxtCodigoFuente.SelectionStart = inicio + texto.Length;
                 rTxtCodigoFuente.SelectionLength = 0;
             }
         }
+
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == (Keys.Control | Keys.V))
@@ -211,11 +212,9 @@ namespace AnalizadorLexico_LenguajeZAP
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-        //Metodo para obtener la matriz de transicion desde la base de datos.
         public DataTable ObtenerMatriz()
         {
             DataTable tabla = new DataTable();
-
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 string query = "SELECT * FROM [Matriz$]";
@@ -225,7 +224,6 @@ namespace AnalizadorLexico_LenguajeZAP
             return tabla;
         }
 
-        //Metodo para recorrer la matriz de transicion.
         public string ValidarCadena(DataTable matriz, string cadenaEntrada)
         {
             int estadoActual = 1;
@@ -242,19 +240,13 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
-            // Forzamos un último salto usando la columna "FDC" de tu base de datos
             estadoActual = MoverSiguienteEstado(matriz, estadoActual, "FDC", estadosError);
-
-            //Se obtiene el token o error correspondiente a la cadena leida
             return ObtenerTokenOError(matriz, estadoActual);
         }
 
-        //Metodo que nos ayuda a realizar los movimientos de estado en la matriz de transicion
         private int MoverSiguienteEstado(DataTable matriz, int estado, string columna, int[] errores)
         {
-            // Buscamos la fila del estado actual
             DataRow[] filas = matriz.Select("F1 = " + estado);
-
             if (filas.Length > 0 && matriz.Columns.Contains(columna))
             {
                 object valor = filas[0][columna];
@@ -263,11 +255,9 @@ namespace AnalizadorLexico_LenguajeZAP
                     return Convert.ToInt32(valor);
                 }
             }
-            return errores[0]; // Si no hay camino, mandamos al primer estado de error
+            return errores[0];
         }
 
-
-        //Metodo que nos devolvera el token o error de la cadena leida previamente
         private string ObtenerTokenOError(DataTable matriz, int estado)
         {
             DataRow[] filas = matriz.Select("F1 = " + estado);
@@ -278,64 +268,41 @@ namespace AnalizadorLexico_LenguajeZAP
             return "CADENA_NO_VALIDA";
         }
 
-        // Metodo auxiliar para algunos caracteres en la base de datos SQL
         private string ObtenerNombreColumnaSQL(char c)
         {
-            if (char.IsUpper(c))
-            {
-                return c.ToString() + "1";
-            }
-            
+            if (char.IsUpper(c)) return c.ToString() + "1";
+
             switch (c)
             {
-                case '.':
-                    return "#1";
-                case ',':
-                    return ".";
-                case '[':
-                    return "(1";
-                case ']':
-                    return ")1";
-                case '!':
-                    return "_1";
-
-                default:
-                    return c.ToString();
+                case '.': return "#1";
+                case ',': return ".";
+                case '[': return "(1";
+                case ']': return ")1";
+                case '!': return "_1";
+                default: return c.ToString();
             }
         }
-        /*-----------------------------ARCHIVO DE TOKENS-----------------------------*/
-        //Metodo que genera el archivo de tokens asi como detecta los errores que se puedan presentar
+
         private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea, int numLinea, RichTextBox rtbErrores, ref int totalErrores)
         {
             if (string.IsNullOrWhiteSpace(textoLinea)) return "";
 
             StringBuilder sbLinea = new StringBuilder();
             string acumulador = "";
-            // Añadimos un espacio al final de la línea para procesar el último lexema
             string lineaConEspacio = textoLinea + " ";
 
             for (int i = 0; i < lineaConEspacio.Length; i++)
             {
                 char c = lineaConEspacio[i];
-                if (c == ',') // Detectamos la coma
+                if (c == ',')
                 {
-                    // Si hay algo previo a validar
                     if (acumulador.Length > 0)
                     {
-                        // 1. Probamos primero de forma limpia en la Base de Datos (ideal para palabras reservadas)
                         string resPrevio = ValidarCadena(matriz, acumulador);
-
-                        // 2. Si da error o es un IDEN genérico, aplicamos el rescate manual
                         if (resPrevio.StartsWith("ER") || resPrevio == "CADENA_NO_VALIDA" || resPrevio == "IDEN")
                         {
-                            if (acumulador.StartsWith("$"))
-                            {
-                                resPrevio = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                            }
-                            else if (char.IsDigit(acumulador[0]))
-                            {
-                                resPrevio = "CONENTERO";
-                            }
+                            if (acumulador.StartsWith("$")) resPrevio = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                            else if (char.IsDigit(acumulador[0])) resPrevio = "CONENTERO";
                         }
 
                         VerificarSiEsError(resPrevio, acumulador, numLinea, rtbErrores, ref totalErrores);
@@ -343,42 +310,29 @@ namespace AnalizadorLexico_LenguajeZAP
                         acumulador = "";
                     }
 
-                    // Procesamos la coma de forma segura
                     string resComa = ValidarCadena(matriz, ",");
-                    if (resComa.StartsWith("ER") || resComa == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resComa))
-                    {
-                        resComa = "CS13";
-                    }
+                    if (resComa.StartsWith("ER") || resComa == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resComa)) resComa = "CS13";
 
                     sbLinea.Append(resComa + " ");
                     continue;
                 }
-                //Espacios en blanco
                 else if (c == ' ' || c == '\t')
                 {
                     if (acumulador.Length > 0)
                     {
                         string resultado = ValidarCadena(matriz, acumulador);
+                        if (resultado == "IDEN") resultado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
 
-                        if (resultado == "IDEN")
-                        {
-                            // Utilizamos la tabla de simbolos para verificar si ya existe el identificador
-                            resultado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                        }
-
-                        // Verificamos si es un error antes de agregarlo al archivo de tokens
                         VerificarSiEsError(resultado, acumulador, numLinea, rtbErrores, ref totalErrores);
-
                         sbLinea.Append(resultado + " ");
                         acumulador = "";
                     }
                     sbLinea.Append(c);
                 }
-                //Cadenas
                 else if (c == '"')
                 {
                     string cadena = "";
-                    i++; // Avanzar para saltar la comilla inicial
+                    i++;
                     bool seCerraronComillas = false;
 
                     while (i < lineaConEspacio.Length)
@@ -386,44 +340,30 @@ namespace AnalizadorLexico_LenguajeZAP
                         if (lineaConEspacio[i] == '"')
                         {
                             seCerraronComillas = true;
-                            break; // Encontró la comilla de cierre legítima
+                            break;
                         }
                         cadena += lineaConEspacio[i];
                         i++;
                     }
 
                     string resCadena;
-
                     if (seCerraronComillas)
                     {
-                        // 1. Le preguntamos a la base de datos pasando las comillas reales
                         resCadena = ValidarCadena(matriz, "\"" + cadena + "\"");
-
-                        // 2. Si la base de datos falla pero sabemos que estructuralmente está bien cerrada,
-                        // puedes usar tu respaldo manual (cambia "CAD" por el código exacto que uses si no es ese)
-                        if (resCadena.StartsWith("ER") || resCadena == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resCadena))
-                        {
-                            resCadena = "CAD";
-                        }
+                        if (resCadena.StartsWith("ER") || resCadena == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resCadena)) resCadena = "CAD";
                     }
                     else
                     {
-                        // ERROR: La línea terminó y nunca se pusieron las comillas de cierre
                         resCadena = "ER02 \"Error: Cadena constante sin cerrar\"";
                     }
 
-                    // Pasamos el resultado por tu verificador de errores
                     VerificarSiEsError(resCadena, "\"" + cadena + (seCerraronComillas ? "\"" : ""), numLinea, rtbErrores, ref totalErrores);
-
-                    // Agregamos el token resultante al registro
                     sbLinea.Append(resCadena + " ");
                     continue;
                 }
                 else if ("+-".Contains(c.ToString()))
                 {
-                    bool esExponencial = acumulador.Length > 0 &&
-                         acumulador.ToUpper().EndsWith("E") &&
-                         char.IsDigit(acumulador[0]);
+                    bool esExponencial = acumulador.Length > 0 && acumulador.ToUpper().EndsWith("E") && char.IsDigit(acumulador[0]);
 
                     if (esExponencial)
                     {
@@ -433,31 +373,16 @@ namespace AnalizadorLexico_LenguajeZAP
                     {
                         if (acumulador.Length > 0)
                         {
-                            // 1. Intentamos evaluar la palabra limpia
                             string resPrev = ValidarCadena(matriz, acumulador);
-
-                            // 2. Si falla, probamos con el espacio simulado
                             if (resPrev.StartsWith("ER") || resPrev == "CADENA_NO_VALIDA" || resPrev == "IDEN")
                             {
                                 string intentoConEspacio = ValidarCadena(matriz, acumulador + " ");
-                                if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA")
-                                {
-                                    resPrev = intentoConEspacio;
-                                }
-                                else if (acumulador.StartsWith("$"))
-                                {
-                                    resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                                }
-                                else if (char.IsDigit(acumulador[0]))
-                                {
-                                    resPrev = "CONENTERO";
-                                }
+                                if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA") resPrev = intentoConEspacio;
+                                else if (acumulador.StartsWith("$")) resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                                else if (char.IsDigit(acumulador[0])) resPrev = "CONENTERO";
                             }
 
-                            if (resPrev == "IDEN")
-                            {
-                                resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                            }
+                            if (resPrev == "IDEN") resPrev = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
 
                             VerificarSiEsError(resPrev, acumulador, numLinea, rtbErrores, ref totalErrores);
                             sbLinea.Append(resPrev + " ");
@@ -479,41 +404,20 @@ namespace AnalizadorLexico_LenguajeZAP
                         sbLinea.Append(resOp + " ");
                     }
                 }
-                //Caracteres Especiales
                 else if ("()[]{};*/!<>=:".Contains(c.ToString()))
                 {
                     if (acumulador.Length > 0)
                     {
-                        // 1. Intentamos evaluar la palabra limpia (Ideal para palabras reservadas como 'if')
                         string resAcumulado = ValidarCadena(matriz, acumulador);
-
-                        // 2. Si da error o es un IDEN genérico, probamos simulando el espacio (Ideal para 'switch', '$i', '5')
                         if (resAcumulado.StartsWith("ER") || resAcumulado == "CADENA_NO_VALIDA" || resAcumulado == "IDEN")
                         {
                             string intentoConEspacio = ValidarCadena(matriz, acumulador + " ");
-
-                            // Si con espacio la BD responde con una Palabra Reservada (ej: PRXX) o un token válido, lo usamos
-                            if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA")
-                            {
-
-                                resAcumulado = intentoConEspacio;
-                            }
-                            // Si sigue dando problemas pero sabemos qué es por sus caracteres iniciales, lo rescatamos manualmente
-                            else if (acumulador.StartsWith("$"))
-                            {
-                                resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                            }
-                            else if (char.IsDigit(acumulador[0]))
-                            {
-                                resAcumulado = "CONENTERO";
-                            }
+                            if (!intentoConEspacio.StartsWith("ER") && intentoConEspacio != "CADENA_NO_VALIDA") resAcumulado = intentoConEspacio;
+                            else if (acumulador.StartsWith("$")) resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
+                            else if (char.IsDigit(acumulador[0])) resAcumulado = "CONENTERO";
                         }
 
-                        // Si después de todo el proceso se resolvió como IDEN puro de la matriz, lo indexamos
-                        if (resAcumulado == "IDEN")
-                        {
-                            resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
-                        }
+                        if (resAcumulado == "IDEN") resAcumulado = ObtenerTokenIdentificador(acumulador, dtgTablaSimbolos);
 
                         VerificarSiEsError(resAcumulado, acumulador, numLinea, rtbErrores, ref totalErrores);
                         sbLinea.Append(resAcumulado + " ");
@@ -540,10 +444,8 @@ namespace AnalizadorLexico_LenguajeZAP
                         }
                     }
                     string resEspecial = ValidarCadena(matriz, lexemaEspecial);
-                    if (lexemaEspecial == ":" && (resEspecial.StartsWith("ER") || resEspecial == "CADENA_NO_VALIDA"))
-                    {
-                        resEspecial = "CS16"; // Usa aquí el código de token que le corresponda a los dos puntos (ej: CS16 o similar)
-                    }
+                    if (lexemaEspecial == ":" && (resEspecial.StartsWith("ER") || resEspecial == "CADENA_NO_VALIDA")) resEspecial = "CS16";
+
                     VerificarSiEsError(resEspecial, lexemaEspecial, numLinea, rtbErrores, ref totalErrores);
                     sbLinea.Append(resEspecial + " ");
                 }
@@ -555,21 +457,11 @@ namespace AnalizadorLexico_LenguajeZAP
             return sbLinea.ToString();
         }
 
-
-        /*-----------------------------FIN ARCHIVO DE TOKENS-----------------------------*/
-
-        /*-----------------------------MANEJO DE ERRORES-----------------------------*/
-
         private void VerificarSiEsError(string resultado, string lexema, int linea, RichTextBox rtbErrores, ref int total)
         {
+            bool esError = resultado.StartsWith("ER") || resultado.Equals("CADENA_NO_VALIDA");
 
-            bool esError = resultado.StartsWith("ER") ||
-                           resultado.Equals("CADENA_NO_VALIDA");
-
-            if (resultado == "CONENTERO" || resultado == "IDEN" || resultado.StartsWith("PR"))
-            {
-                esError = false;
-            }
+            if (resultado == "CONENTERO" || resultado == "IDEN" || resultado.StartsWith("PR")) esError = false;
 
             if (!esError && !string.IsNullOrWhiteSpace(resultado))
             {
@@ -579,8 +471,7 @@ namespace AnalizadorLexico_LenguajeZAP
             if (esError)
             {
                 total++;
-                string entrada = string.Format("{0}\t{1} (Lexema: '{2}'){3}",
-                                               linea, resultado, lexema, Environment.NewLine);
+                string entrada = string.Format("{0}\t{1} (Lexema: '{2}'){3}", linea, resultado, lexema, Environment.NewLine);
 
                 int inicio = rtbErrores.TextLength;
                 rtbErrores.AppendText(entrada);
@@ -588,27 +479,11 @@ namespace AnalizadorLexico_LenguajeZAP
                 rtbErrores.SelectionColor = Color.Red;
                 rtbErrores.DeselectAll();
                 rtbErrores.SelectionColor = Color.Black;
-
             }
         }
 
-        /*-----------------------------FIN DE MANEJO DE ERRORES-----------------------------*/
-
-        /*-----------------------------TABLA DE SIMBOLOS-----------------------------*/
-        public class Simbolo
-        {
-            public int Id { get; set; }
-            public string Lexema { get; set; }
-            public string TipoDato { get; set; }  // "entero", "flotante", etc.
-            public string Categoria { get; set; } // "Variable", "Constante"
-            public object Valor { get; set; }     // Valor asignado en ejecución/evaluación
-        }
-        Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
-        int contadorID = 1;
-
         private string ObtenerTokenIdentificador(string lexema, DataGridView dgvSimbolos)
         {
-            // Si ya existe en la tabla, devolvemos su ID asignado
             if (tablaSimbolos.ContainsKey(lexema))
             {
                 return "IDEN" + tablaSimbolos[lexema].Id;
@@ -619,24 +494,20 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 Id = nuevoID,
                 Lexema = lexema,
+                TipoDato = "Desconocido",
+                Scope = "Global",
+                Direccion = 0,
+                EstaInicializada = false,
+                Valor = null
             };
 
             tablaSimbolos.Add(lexema, nuevoSimbolo);
-
-            // Reflejar en la interfaz gráfica (DataGridView)
-            dgvSimbolos.Rows.Add(nuevoSimbolo.Id, nuevoSimbolo.Lexema, nuevoSimbolo.TipoDato, nuevoSimbolo.Categoria, nuevoSimbolo.Valor);
-
             return "IDEN" + nuevoID;
         }
 
-
-
-        //Metodo para guardar el archivo de codigo fuente
         private void btnGuardarArchivo_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
-
-         
             saveFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt";
             saveFileDialog.Title = "Guardar código fuente";
             saveFileDialog.DefaultExt = "zap";
@@ -646,9 +517,7 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 try
                 {
-                  
                     File.WriteAllText(saveFileDialog.FileName, rTxtCodigoFuente.Text);
-
                     MessageBox.Show("Archivo guardado con éxito.", "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -658,12 +527,9 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        //Metodo para cargar el archivo de codigo fuente
         private void btnCargarPrograma_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-
-            // Filtros para que el usuario solo vea archivos de texto o con la extensión de tu lenguaje
             openFileDialog.Filter = "Archivos ZAP (*.zap)|*.zap|Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
             openFileDialog.Title = "Seleccionar código fuente ZAP";
 
@@ -671,12 +537,9 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 try
                 {
-               
                     string contenido = File.ReadAllText(openFileDialog.FileName);
-
-                
                     rTxtCodigoFuente.Text = contenido;
-                    rTxtCodigoFuente.ReadOnly=true;
+                    rTxtCodigoFuente.ReadOnly = true;
                     rTxtCodigoFuente.BackColor = SystemColors.ControlLight;
                     MessageBox.Show("Archivo cargado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -687,18 +550,15 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        //Metodo para guardar el archivo de tokens
         private void btnGuardarArchivoTokens_Click(object sender, EventArgs e)
         {
             if (rTxtTokens.Text.Contains("ER0") || rTxtTokens.Text.Contains("ER1"))
             {
-                MessageBox.Show("No se puede guardar el archivo de tokens porque contiene errores. Por favor, corrige los errores antes de guardar.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("No se puede guardar el archivo de tokens porque contiene errores.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             else
             {
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
-
-
                 saveFileDialog.Filter = "Archivos de Tokens ZAP (*.ztk)|*.ztk|Archivos de texto (*.txt)|*.txt";
                 saveFileDialog.Title = "Guardar archivo de tokens";
                 saveFileDialog.DefaultExt = "ztk";
@@ -708,9 +568,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 {
                     try
                     {
-
                         File.WriteAllText(saveFileDialog.FileName, rTxtTokens.Text);
-
                         MessageBox.Show("Archivo guardado con éxito.", "Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
@@ -720,7 +578,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
         }
-        //Metodo para editar el programa de codigo fuente
+
         private void btnEditarPrograma_Click(object sender, EventArgs e)
         {
             rTxtCodigoFuente.ReadOnly = false;
@@ -730,114 +588,284 @@ namespace AnalizadorLexico_LenguajeZAP
         public bool AnalizadorSintactico()
         {
             listaTokensExtraidos.Clear();
-
             string contenidoActual = rTxtTokens.Text;
-
-            string contenidoNormalizado = contenidoActual.Replace("\r\n", "\n").Replace("\r", "\n");
-            contenidoNormalizado = contenidoNormalizado.Replace("\n", " \n ");
+            string contenidoNormalizado = contenidoActual.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", " \n ");
 
             string[] palabras = contenidoNormalizado.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (string token in palabras)
             {
-                if (token == "\n")
-                {
-                    listaTokensExtraidos.Add("\n");
-                }
+                if (token == "\n") listaTokensExtraidos.Add("\n");
                 else
                 {
                     string tokenLimpio = token.Trim();
-                    if (!string.IsNullOrEmpty(tokenLimpio))
-                    {
-                        listaTokensExtraidos.Add(tokenLimpio);
-                    }
+                    if (!string.IsNullOrEmpty(tokenLimpio)) listaTokensExtraidos.Add(tokenLimpio);
                 }
             }
+
             ZapParsingResult resultado = PushdownParser.ExecuteParser(listaTokensExtraidos);
             rTxtErrores.Clear();
+
             if (resultado.Success)
             {
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis sintáctico completado con éxito! Estructura válida.\n");
                 MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
                 rTxtErrores.AppendText("\n=== INICIANDO ANÁLISIS SEMÁNTICO ===\n\n");
-                AnalizadorSemantico();
-
                 return true;
-
             }
             else
             {
                 rTxtErrores.SelectionColor = Color.Red;
                 rTxtErrores.AppendText("=== ERRORES SINTÁCTICOS DETECTADOS ===\n\n");
-
                 foreach (string error in resultado.Errors)
                 {
                     rTxtErrores.SelectionColor = Color.DarkRed;
                     rTxtErrores.AppendText($"• {error}\n");
                 }
-
                 MessageBox.Show("Se encontraron fallas sintácticas en el orden de los tokens.", "Error de Sintaxis", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
-        /*foreach (string paso in resultado.TraceSteps)
+
+        // ------------------------------------------------
+        // 2. MÉTODOS AUXILIARES PARA ASIGNACIÓN DE MEMORIA
+        // ------------------------------------------------
+        private int ObtenerTamanoBytes(string tipoDato)
         {
-            if (paso.StartsWith("[MATCH]"))
+            switch (tipoDato.ToLower())
             {
-                rTxtRecorrido.SelectionColor = Color.Blue;
+                case "int":
+                case "pr19":
+                case "float":
+                case "double":
+                case "pr11":
+                case "string":
+                case "pr28":
+                    return 4; // 4 bytes en memoria (int, float, o puntero de string)
+                case "char":
+                    return 2; // 2 bytes en Unicode
+                case "boolean":
+                case "bool":
+                case "pr02":
+                    return 1; // 1 byte
+                default:
+                    return 4;
             }
-            else if (paso.Contains("-> ε"))
+        }
+
+        // ------------------------------------------------
+        // 3. ANÁLISIS SEMÁNTICO CON SCOPE, MEMORIA Y ERRORES
+        // ------------------------------------------------
+        public void AnalizadorSemantico()
+        {
+            int erroresSemanticos = 0;
+            int nivelBloque = 0; // Nivel 0 = Global, Nivel > 0 = Local
+            offsetGlobal = 0;
+            offsetLocal = 0;
+
+            string codigo = rTxtCodigoFuente.Text;
+            string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
+
+            // 1. RECORRIDO COMPLETO DE TOKENS PARA DETECTAR DECLARACIONES, SCOPE Y MEMORIA
+            for (int i = 0; i < listaTokensCompletos.Count; i++)
             {
-                rTxtRecorrido.SelectionColor = Color.Gray;
+                var actual = listaTokensCompletos[i];
+
+                // Manejo de Bloques para Scope (Global/Local)
+                if (actual.Lexema == "{")
+                {
+                    nivelBloque++;
+                }
+                else if (actual.Lexema == "}")
+                {
+                    if (nivelBloque > 0) nivelBloque--;
+                }
+
+                // DETECCIÓN DE DECLARACIÓN DE VARIABLES (int, float, string, char, boolean/bool)
+                bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11" ||
+                                     actual.Lexema == "int" || actual.Lexema == "float" || actual.Lexema == "string" ||
+                                     actual.Lexema == "char" || actual.Lexema == "boolean" || actual.Lexema == "bool";
+
+                if (esDeclaracion && i + 1 < listaTokensCompletos.Count)
+                {
+                    var siguiente = listaTokensCompletos[i + 1];
+
+                    if (siguiente.Token.StartsWith("IDEN") || siguiente.Lexema.StartsWith("$"))
+                    {
+                        string idenLexema = siguiente.Lexema;
+                        string tipoNormalizado = NormalizarTipo(actual.Lexema, actual.Token);
+
+                        tablaTiposVariables[siguiente.Token] = tipoNormalizado;
+
+                        if (tablaSimbolos.ContainsKey(idenLexema))
+                        {
+                            Simbolo sim = tablaSimbolos[idenLexema];
+                            sim.TipoDato = tipoNormalizado;
+                            sim.Scope = (nivelBloque == 0) ? "Global" : "Local"; // Asignación de Scope
+
+                            // Generación de Direcciones de Memoria
+                            int bytes = ObtenerTamanoBytes(tipoNormalizado);
+                            if (sim.Scope == "Global")
+                            {
+                                sim.Direccion = offsetGlobal;
+                                offsetGlobal += bytes; // Offset acumulado en memoria Global
+                            }
+                            else
+                            {
+                                sim.Direccion = offsetLocal;
+                                offsetLocal += bytes; // Offset acumulado en memoria Local (Stack Frame)[cite: 14]
+                            }
+
+                            // Verificar si tiene inicialización inmediata: int $A = 10;
+                            if (i + 2 < listaTokensCompletos.Count && listaTokensCompletos[i + 2].Lexema == "=")
+                            {
+                                sim.EstaInicializada = true; // Se marca como inicializada[cite: 14]
+                            }
+                        }
+                    }
+                }
+
+                // CHECK: USO DE VARIABLES NO DECLARADAS O NO INICIALIZADAS[cite: 14]
+                if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion)
+                {
+                    if (i > 0 && listaTokensCompletos[i - 1].Lexema != "int" && listaTokensCompletos[i - 1].Lexema != "string" &&
+                        listaTokensCompletos[i - 1].Lexema != "float" && listaTokensCompletos[i - 1].Lexema != "char" &&
+                        listaTokensCompletos[i - 1].Lexema != "boolean" && !listaTokensCompletos[i - 1].Token.StartsWith("PR"))
+                    {
+                        if (tablaSimbolos.ContainsKey(actual.Lexema))
+                        {
+                            Simbolo sim = tablaSimbolos[actual.Lexema];
+
+                            // Error de Variable no Declarada (CS0103)[cite: 14]
+                            if (string.IsNullOrEmpty(sim.TipoDato) || sim.TipoDato == "Desconocido")
+                            {
+                                ImprimirErrorSemantico(actual.Linea, $"Error CS0103: El nombre '{actual.Lexema}' no existe en el contexto o ámbito actual.");
+                                erroresSemanticos++;
+                            }
+                            // Error de Variable no Inicializada[cite: 14]
+                            else if (!sim.EstaInicializada && i + 1 < listaTokensCompletos.Count && listaTokensCompletos[i + 1].Lexema != "=")
+                            {
+                                ImprimirErrorSemantico(actual.Linea, $"Error Semántico: Uso de la variable '{actual.Lexema}' no inicializada.");
+                                erroresSemanticos++;
+                            }
+                        }
+                    }
+                }
+
+                // CHECK: ASIGNACIONES Y COMPATIBILIDAD DE TIPOS
+                if (actual.Token.StartsWith("IDEN") && i + 2 < listaTokensCompletos.Count)
+                {
+                    var operador = listaTokensCompletos[i + 1];
+                    var valor = listaTokensCompletos[i + 2];
+
+                    if (operador.Lexema == "=" || operador.Token == "OPASIG")
+                    {
+                        if (tablaSimbolos.ContainsKey(actual.Lexema))
+                        {
+                            Simbolo sim = tablaSimbolos[actual.Lexema];
+                            sim.EstaInicializada = true; // Marca inicializada tras asignación[cite: 14]
+
+                            string tipoVariable = sim.TipoDato;
+
+                            // Si se asigna otra variable
+                            if (valor.Token.StartsWith("IDEN") || valor.Lexema.StartsWith("$"))
+                            {
+                                if (tablaSimbolos.ContainsKey(valor.Lexema))
+                                {
+                                    string tipoAsignado = tablaSimbolos[valor.Lexema].TipoDato;
+                                    if (!EsCompatible(tipoVariable, tipoAsignado))
+                                    {
+                                        ImprimirErrorSemantico(actual.Linea, $"Incompatibilidad de tipos. No se puede asignar tipo '{tipoAsignado}' a la variable '{actual.Lexema}' de tipo '{tipoVariable}'.");
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // Validaciones directas por tipo de dato[cite: 10, 14]
+                                if ((tipoVariable == "int" || tipoVariable == "PR19") && valor.Token != "CONENTERO" && !int.TryParse(valor.Lexema, out _))
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'int'. No se le puede asignar el valor '{valor.Lexema}'.");
+                                    erroresSemanticos++;
+                                }
+                                else if ((tipoVariable == "string" || tipoVariable == "PR28") && valor.Token != "CAD" && !valor.Lexema.StartsWith("\""))
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'string'. No se le puede asignar el valor '{valor.Lexema}'.");
+                                    erroresSemanticos++;
+                                }
+                                else if (tipoVariable == "boolean" || tipoVariable == "bool" || tipoVariable == "PR02")
+                                {
+                                    if (valor.Lexema != "0" && valor.Lexema != "1" && valor.Lexema != "true" && valor.Lexema != "false")
+                                    {
+                                        ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable booleana '{actual.Lexema}' solo admite valores booleanos (0, 1, true, false). Se encontró '{valor.Lexema}'.");
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            else if (paso.StartsWith("[REGLA APLICADA]"))
+
+            // 2. EVALUACIÓN Y CÁLCULO DE VALORES DE EXPRESIONES
+            EvaluarValoresVariables();
+
+            // 3. REFLEJAR LOS RESULTADOS EN EL DATAGRIDVIEW CON COLUMNAS COMPLETAS
+            ActualizarDataGrid();
+
+            if (erroresSemanticos > 0)
             {
-                rTxtRecorrido.SelectionColor = Color.DarkGreen;
+                MessageBox.Show($"Se detectaron {erroresSemanticos} errores semánticos. Revisa el reporte de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {
-                rTxtRecorrido.SelectionColor = Color.Black;
+                rTxtErrores.SelectionColor = Color.Green;
+                rTxtErrores.AppendText("¡Análisis semántico completado con éxito! Tipos, Scope y Direcciones de Memoria correctos.\n");
             }
+        }
 
-            rTxtRecorrido.AppendText(paso + Environment.NewLine);
-        }*/
-        //tabAnalizador.SelectedIndex = 1;
+        private string NormalizarTipo(string lexema, string token)
+        {
+            if (token == "PR19" || lexema == "int") return "int";
+            if (token == "PR28" || lexema == "string") return "string";
+            if (token == "PR02" || lexema == "boolean" || lexema == "bool") return "boolean";
+            if (token == "PR11" || lexema == "float" || lexema == "double") return "float";
+            if (lexema == "char") return "char";
+            return lexema;
+        }
+
+        private bool EsCompatible(string tipoDestino, string tipoOrigen)
+        {
+            if (tipoDestino == tipoOrigen) return true;
+            if (tipoDestino == "float" && tipoOrigen == "int") return true; // Promoción implícita int -> float[cite: 10, 12]
+            return false;
+        }
 
         public void EvaluarValoresVariables()
         {
             string codigo = rTxtCodigoFuente.Text;
-        
-
-            string valorGlobal;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
 
-            // 1. Patrón para declaraciones con asignación inicial (ej: int $A = 10; o double $B = 3.14;)
-            string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool)\b\s+(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
-
-            // 2. Patrón para declaraciones sin inicializar (ej: int $A;)
-            string patronDeclaracionSinValor = @"\b(int|double|float|string|char|bool)\b\s+(\$[a-zA-Z0-9_]+)\s*;";
-
-            // 3. Patrón para reasignaciones posteriores (ej: $A = 20; o $SU = $SU + $VA;)
+            string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
+            string patronDeclaracionSinValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*;";
             string patronAsignacion = @"(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
 
-            // --- A) Procesar Declaraciones con Inicialización (int $A = 10;) ---
             MatchCollection declaracionesConValor = Regex.Matches(codigoLimpio, patronDeclaracionConValor);
             foreach (Match m in declaracionesConValor)
             {
                 string tipo = m.Groups[1].Value.ToLower();
                 string iden = m.Groups[2].Value;
-                string valor = m.Groups[3].Value;
+                string valor = m.Groups[3].Value.Trim();
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    tablaSimbolos[iden].TipoDato = tipo;
+                    tablaSimbolos[iden].TipoDato = NormalizarTipo(tipo, "");
                     tablaSimbolos[iden].Valor = valor;
+                    tablaSimbolos[iden].EstaInicializada = true;
                 }
             }
 
-            // --- B) Procesar Declaraciones Sin Valor Inicial (int $A;) ---
             MatchCollection declaracionesSinValor = Regex.Matches(codigoLimpio, patronDeclaracionSinValor);
             foreach (Match m in declaracionesSinValor)
             {
@@ -846,40 +874,34 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    tablaSimbolos[iden].TipoDato = tipo;
-                    if (tablaSimbolos[iden].Valor == null || tablaSimbolos[iden].Valor.ToString() == "Sin asignar")
+                    tablaSimbolos[iden].TipoDato = NormalizarTipo(tipo, "");
+                    if (tablaSimbolos[iden].Valor == null)
                     {
                         tablaSimbolos[iden].Valor = "null";
                     }
                 }
             }
 
-            // --- C) Procesar Reasignaciones o Expresiones ($C = $C + 1;) ---
             MatchCollection asignaciones = Regex.Matches(codigoLimpio, patronAsignacion);
             foreach (Match m in asignaciones)
             {
                 string iden = m.Groups[1].Value;
-                string expresionOriginal = m.Groups[2].Value.Trim(); // Captura "$SU+$VA"
+                string expresionOriginal = m.Groups[2].Value.Trim();
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    // EVALUAMOS LA EXPRESIÓN ANTES DE ASIGNARLA
                     string valorResuelto = EvaluarExpresion(expresionOriginal);
-
-                    tablaSimbolos[iden].Valor = valorResuelto; // Guarda "3" en lugar de "$SU+$VA"
+                    tablaSimbolos[iden].Valor = valorResuelto;
+                    tablaSimbolos[iden].EstaInicializada = true;
                 }
             }
-            ActualizarDataGrid();
         }
 
         private string EvaluarExpresion(string expresion)
         {
             if (string.IsNullOrWhiteSpace(expresion)) return "";
 
-            // 1. Detectar si la expresión contiene comillas directamente (ej. "Hola" + "Mundo")
             bool esOperacionCadena = expresion.Contains("\"");
-
-            // 2. Buscar y reemplazar todas las variables por sus valores actuales
             MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
 
             foreach (Match varMatch in variables)
@@ -891,42 +913,34 @@ namespace AnalizadorLexico_LenguajeZAP
                     var simbolo = tablaSimbolos[nombreVar];
                     string valorActual = simbolo.Valor?.ToString() ?? "";
 
-                    // Si la variable es de tipo string o su valor contiene comillas, es una operación de cadenas
                     if (simbolo.TipoDato == "string" || valorActual.StartsWith("\""))
                     {
                         esOperacionCadena = true;
                     }
 
-                    // Si no tiene valor asignado aún
-                    if (valorActual == "Sin asignar" || valorActual == "null")
+                    if (valorActual == "null" || string.IsNullOrEmpty(valorActual))
                     {
-                        valorActual = (simbolo.TipoDato == "string" || esOperacionCadena) ? "\"\"" : "0";
+                        valorActual = esOperacionCadena ? "\"\"" : "0";
                     }
 
-                    // Reemplazamos la variable en la expresión por su valor real
                     expresion = expresion.Replace(nombreVar, valorActual);
                 }
             }
 
-            // 3. SI ES UNA SUMA/CONCATENACIÓN DE CADENAS
             if (esOperacionCadena)
             {
-                // Dividimos los términos por el operador '+'
                 string[] partes = expresion.Split('+');
                 string resultadoCadena = "";
 
                 foreach (string parte in partes)
                 {
-                    // Limpiamos espacios laterales y removemos las comillas dobles extremas
                     string terminoLimpio = parte.Trim().Trim('"');
                     resultadoCadena += terminoLimpio;
                 }
 
-                // Retornamos el resultado delimitado entre comillas para la Tabla de Símbolos
                 return $"\"{resultadoCadena}\"";
             }
 
-            // 4. SI ES UNA OPERACIÓN NUMÉRICA (int/float/double)
             try
             {
                 DataTable dt = new DataTable();
@@ -939,107 +953,35 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        // ------------------------------------------------
+        // 4. ACTUALIZACIÓN GRÁFICA DE LA TABLA DE SÍMBOLOS
+        // ------------------------------------------------
         private void ActualizarDataGrid()
         {
             dtgTablaSimbolos.Rows.Clear();
+
+            // Configurar columnas en el DataGridView si no han sido agregadas aún
+            if (dtgTablaSimbolos.Columns.Count < 6)
+            {
+                dtgTablaSimbolos.Columns.Clear();
+                dtgTablaSimbolos.Columns.Add("colId", "ID");
+                dtgTablaSimbolos.Columns.Add("colLexema", "Lexema");
+                dtgTablaSimbolos.Columns.Add("colTipo", "Tipo Dato");
+                dtgTablaSimbolos.Columns.Add("colScope", "Scope");
+                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección (Bytes)"); // Offset asignado en memoria[cite: 14]
+                dtgTablaSimbolos.Columns.Add("colValor", "Valor");
+            }
+
             foreach (var item in tablaSimbolos.Values)
             {
-                dtgTablaSimbolos.Rows.Add(item.Id, item.Lexema, item.TipoDato, item.Valor);
-            }
-        }
-        public void ValidarTiposSemanticos()
-        {
-            int erroresSemanticos = 0;
-
-            for (int i = 0; i < listaTokensCompletos.Count; i++)
-            {
-                var actual = listaTokensCompletos[i];
-
-                // 1. DETECCIÓN DE DECLARACIÓN DE VARIABLES
-                // PR19 = int, PR28 = string, PR02 = bool, PR11 = double, etc.
-                if (actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11")
-                {
-                    if (i + 1 < listaTokensCompletos.Count)
-                    {
-                        var siguiente = listaTokensCompletos[i + 1];
-                        if (siguiente.Token.StartsWith("IDEN"))
-                        {
-                            // Registramos en la tabla semántica: Ej. IDEN1 es de tipo PR19 (int)
-                            tablaTiposVariables[siguiente.Token] = actual.Token;
-                        }
-                    }
-                }
-
-                // 2. DETECCIÓN DE ASIGNACIONES (Tipos y Booleanos)
-                // Buscamos el patrón: Variable (IDEN) -> Asignación (= OPASIG) -> Valor
-                if (actual.Token.StartsWith("IDEN") && i + 2 < listaTokensCompletos.Count)
-                {
-                    var operador = listaTokensCompletos[i + 1];
-                    var valor = listaTokensCompletos[i + 2];
-
-                    if (operador.Token == "OPASIG") // Si es el signo igual '='
-                    {
-                        if (tablaTiposVariables.ContainsKey(actual.Token))
-                        {
-                            string tipoVariable = tablaTiposVariables[actual.Token];
-
-                            // Si el valor asignado es OTRA variable, verificamos que sean del mismo tipo
-                            if (valor.Token.StartsWith("IDEN"))
-                            {
-                                if (tablaTiposVariables.ContainsKey(valor.Token))
-                                {
-                                    string tipoAsignado = tablaTiposVariables[valor.Token];
-                                    if (tipoVariable != tipoAsignado)
-                                    {
-                                        ImprimirErrorSemantico(actual.Linea, $"Incompatibilidad de tipos. No puedes asignar una variable tipo '{tipoAsignado}' a la variable '{actual.Lexema}' de tipo '{tipoVariable}'.");
-                                        erroresSemanticos++;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                // A. Validar variables INT (PR19)
-                                if (tipoVariable == "PR19" && valor.Token != "CONENTERO")
-                                {
-                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'int'. No se le puede asignar el valor {valor.Lexema}.");
-                                    erroresSemanticos++;
-                                }
-
-                                // B. Validar variables STRING (PR28)
-                                else if (tipoVariable == "PR28" && valor.Token != "CAD")
-                                {
-                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'string'. No se le puede asignar el valor {valor.Lexema}.");
-                                    erroresSemanticos++;
-                                }
-
-                                // C. Validar variables BOOL (PR02) -> ¡SOLO 0 y 1!
-                                else if (tipoVariable == "PR02")
-                                {
-                                    if (valor.Lexema != "0" && valor.Lexema != "1")
-                                    {
-                                        ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable booleana '{actual.Lexema}' solo admite los valores 0 o 1. Se encontró '{valor.Lexema}'.");
-                                        erroresSemanticos++;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable '{actual.Lexema}' no ha sido declarada con un tipo de dato.");
-                            erroresSemanticos++;
-                        }
-                    }
-                }
-            }
-
-            if (erroresSemanticos > 0)
-            {
-                MessageBox.Show("Se detectaron errores semánticos (incompatibilidad de tipos o valores incorrectos). Revisa la consola de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            else
-            {
-                rTxtErrores.SelectionColor = Color.Green;
-                rTxtErrores.AppendText("¡Análisis semántico completado con éxito! Tipos de datos correctos.\n");
+                dtgTablaSimbolos.Rows.Add(
+                    item.Id,
+                    item.Lexema,
+                    item.TipoDato ?? "Desconocido",
+                    item.Scope ?? "Global",
+                    item.Direccion + " bytes", // Muestra la dirección calculada[cite: 14]
+                    item.Valor ?? "null"
+                );
             }
         }
 
@@ -1049,17 +991,9 @@ namespace AnalizadorLexico_LenguajeZAP
             string textoError = $"• LÍNEA {linea}: {mensaje}\n";
             rTxtErrores.AppendText(textoError);
             rTxtErrores.Select(inicio, textoError.Length);
-            rTxtErrores.SelectionColor = Color.DarkOrange; // Naranja para errores semánticos
+            rTxtErrores.SelectionColor = Color.DarkOrange;
             rTxtErrores.DeselectAll();
             rTxtErrores.SelectionColor = Color.Black;
-        }
-        public void AnalizadorSemantico()
-        {
-
-            EvaluarValoresVariables();
-
-      
-            ValidarTiposSemanticos();
         }
     }
 }

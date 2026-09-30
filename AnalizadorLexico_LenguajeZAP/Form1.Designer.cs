@@ -47,13 +47,16 @@
             this.rTxtErrores = new System.Windows.Forms.RichTextBox();
             this.tabTablaSimbolos = new System.Windows.Forms.TabPage();
             this.dtgTablaSimbolos = new System.Windows.Forms.DataGridView();
-            this.Identificador = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Nombre = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TipoDato = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Valor = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
+            this.Identificador = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Nombre = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TipoDato = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Scope = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Direccion = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.EstaInicializada = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Valor = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -72,7 +75,7 @@
             this.tabControl1.Controls.Add(this.tabError);
             this.tabControl1.Controls.Add(this.tabTablaSimbolos);
             this.tabControl1.Location = new System.Drawing.Point(9, 10);
-            this.tabControl1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabControl1.Margin = new System.Windows.Forms.Padding(2);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Size = new System.Drawing.Size(962, 591);
@@ -86,9 +89,9 @@
             this.tabCodigo.Controls.Add(this.btnEditarPrograma);
             this.tabCodigo.Controls.Add(this.btnCargarPrograma);
             this.tabCodigo.Location = new System.Drawing.Point(4, 22);
-            this.tabCodigo.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabCodigo.Margin = new System.Windows.Forms.Padding(2);
             this.tabCodigo.Name = "tabCodigo";
-            this.tabCodigo.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabCodigo.Padding = new System.Windows.Forms.Padding(2);
             this.tabCodigo.Size = new System.Drawing.Size(954, 565);
             this.tabCodigo.TabIndex = 0;
             this.tabCodigo.Text = "Código";
@@ -99,7 +102,7 @@
             this.panel1.Controls.Add(this.rTxtNumeros);
             this.panel1.Controls.Add(this.rTxtCodigoFuente);
             this.panel1.Location = new System.Drawing.Point(2, 5);
-            this.panel1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(950, 508);
             this.panel1.TabIndex = 5;
@@ -110,7 +113,7 @@
             this.rTxtNumeros.Enabled = false;
             this.rTxtNumeros.ForeColor = System.Drawing.Color.Blue;
             this.rTxtNumeros.Location = new System.Drawing.Point(-2, -3);
-            this.rTxtNumeros.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.rTxtNumeros.Margin = new System.Windows.Forms.Padding(2);
             this.rTxtNumeros.Name = "rTxtNumeros";
             this.rTxtNumeros.ReadOnly = true;
             this.rTxtNumeros.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
@@ -123,7 +126,7 @@
             this.rTxtCodigoFuente.AcceptsTab = true;
             this.rTxtCodigoFuente.Font = new System.Drawing.Font("Consolas", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rTxtCodigoFuente.Location = new System.Drawing.Point(54, -3);
-            this.rTxtCodigoFuente.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.rTxtCodigoFuente.Margin = new System.Windows.Forms.Padding(2);
             this.rTxtCodigoFuente.Name = "rTxtCodigoFuente";
             this.rTxtCodigoFuente.Size = new System.Drawing.Size(894, 512);
             this.rTxtCodigoFuente.TabIndex = 1;
@@ -132,7 +135,7 @@
             // btnAnalizarCodigo
             // 
             this.btnAnalizarCodigo.Location = new System.Drawing.Point(765, 518);
-            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(2);
             this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
             this.btnAnalizarCodigo.Size = new System.Drawing.Size(186, 37);
             this.btnAnalizarCodigo.TabIndex = 4;
@@ -143,7 +146,7 @@
             // btnGuardarArchivo
             // 
             this.btnGuardarArchivo.Location = new System.Drawing.Point(570, 518);
-            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(2);
             this.btnGuardarArchivo.Name = "btnGuardarArchivo";
             this.btnGuardarArchivo.Size = new System.Drawing.Size(186, 37);
             this.btnGuardarArchivo.TabIndex = 3;
@@ -154,7 +157,7 @@
             // btnEditarPrograma
             // 
             this.btnEditarPrograma.Location = new System.Drawing.Point(375, 518);
-            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(2);
             this.btnEditarPrograma.Name = "btnEditarPrograma";
             this.btnEditarPrograma.Size = new System.Drawing.Size(186, 37);
             this.btnEditarPrograma.TabIndex = 2;
@@ -165,7 +168,7 @@
             // btnCargarPrograma
             // 
             this.btnCargarPrograma.Location = new System.Drawing.Point(180, 518);
-            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(2);
             this.btnCargarPrograma.Name = "btnCargarPrograma";
             this.btnCargarPrograma.Size = new System.Drawing.Size(186, 37);
             this.btnCargarPrograma.TabIndex = 1;
@@ -178,9 +181,9 @@
             this.tabToken.Controls.Add(this.panel2);
             this.tabToken.Controls.Add(this.btnGuardarArchivoTokens);
             this.tabToken.Location = new System.Drawing.Point(4, 22);
-            this.tabToken.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabToken.Margin = new System.Windows.Forms.Padding(2);
             this.tabToken.Name = "tabToken";
-            this.tabToken.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabToken.Padding = new System.Windows.Forms.Padding(2);
             this.tabToken.Size = new System.Drawing.Size(954, 565);
             this.tabToken.TabIndex = 1;
             this.tabToken.Text = "Lista de Tokens";
@@ -191,7 +194,7 @@
             this.panel2.Controls.Add(this.rTxtNumerosTokens);
             this.panel2.Controls.Add(this.rTxtTokens);
             this.panel2.Location = new System.Drawing.Point(0, 0);
-            this.panel2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.panel2.Margin = new System.Windows.Forms.Padding(2);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(950, 508);
             this.panel2.TabIndex = 5;
@@ -201,7 +204,7 @@
             this.rTxtNumerosTokens.BackColor = System.Drawing.SystemColors.ControlLight;
             this.rTxtNumerosTokens.ForeColor = System.Drawing.Color.Blue;
             this.rTxtNumerosTokens.Location = new System.Drawing.Point(0, 0);
-            this.rTxtNumerosTokens.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.rTxtNumerosTokens.Margin = new System.Windows.Forms.Padding(2);
             this.rTxtNumerosTokens.Name = "rTxtNumerosTokens";
             this.rTxtNumerosTokens.ReadOnly = true;
             this.rTxtNumerosTokens.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
@@ -213,7 +216,7 @@
             // 
             this.rTxtTokens.Font = new System.Drawing.Font("Consolas", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rTxtTokens.Location = new System.Drawing.Point(58, 0);
-            this.rTxtTokens.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.rTxtTokens.Margin = new System.Windows.Forms.Padding(2);
             this.rTxtTokens.Name = "rTxtTokens";
             this.rTxtTokens.ReadOnly = true;
             this.rTxtTokens.Size = new System.Drawing.Size(894, 512);
@@ -223,7 +226,7 @@
             // btnGuardarArchivoTokens
             // 
             this.btnGuardarArchivoTokens.Location = new System.Drawing.Point(763, 516);
-            this.btnGuardarArchivoTokens.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.btnGuardarArchivoTokens.Margin = new System.Windows.Forms.Padding(2);
             this.btnGuardarArchivoTokens.Name = "btnGuardarArchivoTokens";
             this.btnGuardarArchivoTokens.Size = new System.Drawing.Size(186, 37);
             this.btnGuardarArchivoTokens.TabIndex = 4;
@@ -235,9 +238,9 @@
             // 
             this.tabError.Controls.Add(this.rTxtErrores);
             this.tabError.Location = new System.Drawing.Point(4, 22);
-            this.tabError.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabError.Margin = new System.Windows.Forms.Padding(2);
             this.tabError.Name = "tabError";
-            this.tabError.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabError.Padding = new System.Windows.Forms.Padding(2);
             this.tabError.Size = new System.Drawing.Size(954, 565);
             this.tabError.TabIndex = 2;
             this.tabError.Text = "Lista de Errores";
@@ -246,7 +249,7 @@
             // rTxtErrores
             // 
             this.rTxtErrores.Location = new System.Drawing.Point(0, 0);
-            this.rTxtErrores.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.rTxtErrores.Margin = new System.Windows.Forms.Padding(2);
             this.rTxtErrores.Name = "rTxtErrores";
             this.rTxtErrores.ReadOnly = true;
             this.rTxtErrores.Size = new System.Drawing.Size(953, 506);
@@ -257,9 +260,9 @@
             // 
             this.tabTablaSimbolos.Controls.Add(this.dtgTablaSimbolos);
             this.tabTablaSimbolos.Location = new System.Drawing.Point(4, 22);
-            this.tabTablaSimbolos.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabTablaSimbolos.Margin = new System.Windows.Forms.Padding(2);
             this.tabTablaSimbolos.Name = "tabTablaSimbolos";
-            this.tabTablaSimbolos.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.tabTablaSimbolos.Padding = new System.Windows.Forms.Padding(2);
             this.tabTablaSimbolos.Size = new System.Drawing.Size(954, 565);
             this.tabTablaSimbolos.TabIndex = 3;
             this.tabTablaSimbolos.Text = "Tabla de Símbolos";
@@ -274,9 +277,12 @@
             this.Identificador,
             this.Nombre,
             this.TipoDato,
+            this.Scope,
+            this.Direccion,
+            this.EstaInicializada,
             this.Valor});
             this.dtgTablaSimbolos.Location = new System.Drawing.Point(4, 5);
-            this.dtgTablaSimbolos.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.dtgTablaSimbolos.Margin = new System.Windows.Forms.Padding(2);
             this.dtgTablaSimbolos.Name = "dtgTablaSimbolos";
             this.dtgTablaSimbolos.ReadOnly = true;
             this.dtgTablaSimbolos.RowHeadersWidth = 51;
@@ -284,39 +290,11 @@
             this.dtgTablaSimbolos.Size = new System.Drawing.Size(947, 540);
             this.dtgTablaSimbolos.TabIndex = 0;
             // 
-            // Identificador
-            // 
-            this.Identificador.HeaderText = "Identificador";
-            this.Identificador.MinimumWidth = 6;
-            this.Identificador.Name = "Identificador";
-            this.Identificador.ReadOnly = true;
-            // 
-            // Nombre
-            // 
-            this.Nombre.HeaderText = "Nombre";
-            this.Nombre.MinimumWidth = 6;
-            this.Nombre.Name = "Nombre";
-            this.Nombre.ReadOnly = true;
-            // 
-            // TipoDato
-            // 
-            this.TipoDato.HeaderText = "Tipo de Dato";
-            this.TipoDato.MinimumWidth = 6;
-            this.TipoDato.Name = "TipoDato";
-            this.TipoDato.ReadOnly = true;
-            // 
-            // Valor
-            // 
-            this.Valor.HeaderText = "Valor";
-            this.Valor.MinimumWidth = 6;
-            this.Valor.Name = "Valor";
-            this.Valor.ReadOnly = true;
-            // 
             // pictureBox1
             // 
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(976, 35);
-            this.pictureBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.pictureBox1.Margin = new System.Windows.Forms.Padding(2);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(163, 182);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -347,6 +325,52 @@
             this.label2.Text = "Integrantes del Equipo\r\nEmmanuel Blanco Samaniego 23100139\r\nDerek Alexander Camar" +
     "ena Zequeida 23100141\r\nCarlos Eduardo Contreras Hernández 23100151\r\n";
             // 
+            // Identificador
+            // 
+            this.Identificador.HeaderText = "Identificador";
+            this.Identificador.MinimumWidth = 6;
+            this.Identificador.Name = "Identificador";
+            this.Identificador.ReadOnly = true;
+            // 
+            // Nombre
+            // 
+            this.Nombre.HeaderText = "Nombre";
+            this.Nombre.MinimumWidth = 6;
+            this.Nombre.Name = "Nombre";
+            this.Nombre.ReadOnly = true;
+            // 
+            // TipoDato
+            // 
+            this.TipoDato.HeaderText = "Tipo de Dato";
+            this.TipoDato.MinimumWidth = 6;
+            this.TipoDato.Name = "TipoDato";
+            this.TipoDato.ReadOnly = true;
+            // 
+            // Scope
+            // 
+            this.Scope.HeaderText = "Alcance";
+            this.Scope.Name = "Scope";
+            this.Scope.ReadOnly = true;
+            // 
+            // Direccion
+            // 
+            this.Direccion.HeaderText = "Direccion";
+            this.Direccion.Name = "Direccion";
+            this.Direccion.ReadOnly = true;
+            // 
+            // EstaInicializada
+            // 
+            this.EstaInicializada.HeaderText = "¿Inicializada?";
+            this.EstaInicializada.Name = "EstaInicializada";
+            this.EstaInicializada.ReadOnly = true;
+            // 
+            // Valor
+            // 
+            this.Valor.HeaderText = "Valor";
+            this.Valor.MinimumWidth = 6;
+            this.Valor.Name = "Valor";
+            this.Valor.ReadOnly = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -356,7 +380,7 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.tabControl1);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
             this.Text = "Analizador Léxico ZAP";
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -394,13 +418,16 @@
         private System.Windows.Forms.RichTextBox rTxtTokens;
         private System.Windows.Forms.TabPage tabTablaSimbolos;
         private System.Windows.Forms.DataGridView dtgTablaSimbolos;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Identificador;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Nombre;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TipoDato;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Valor;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Identificador;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Nombre;
+        private System.Windows.Forms.DataGridViewTextBoxColumn TipoDato;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Scope;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Direccion;
+        private System.Windows.Forms.DataGridViewTextBoxColumn EstaInicializada;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Valor;
     }
 }
 
