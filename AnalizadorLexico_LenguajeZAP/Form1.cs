@@ -974,12 +974,15 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var item in tablaSimbolos.Values)
             {
+                string respuesta=item.EstaInicializada? "Sí" : "No";
+
                 dtgTablaSimbolos.Rows.Add(
                     item.Id,
                     item.Lexema,
                     item.TipoDato ?? "Desconocido",
                     item.Scope ?? "Global",
                     item.Direccion + " bytes", // Muestra la dirección calculada[cite: 14]
+                    respuesta,
                     item.Valor ?? "null"
                 );
             }
