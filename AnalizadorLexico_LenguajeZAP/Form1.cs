@@ -133,7 +133,7 @@ namespace AnalizadorLexico_LenguajeZAP
             rtb.SelectionColor = Color.Black;
         }
 
-        string connectionString = "Server=DACZ-1225; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
+        string connectionString = "Server=localhost; Database=ZAP; Integrated Security=True; TrustServerCertificate=True;";
 
         public Form1()
         {
@@ -682,10 +682,11 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (nivelBloque > 0) nivelBloque--;
                 }
 
-                // DETECCIÓN DE DECLARACIÓN DE VARIABLES (int, float, string, char, boolean/bool)
+                // DETECCIÓN DE DECLARACIÓN DE VARIABLES CON TOLERANCIA A MAYÚSCULAS
+                string lexemaMin = actual.Lexema.ToLower();
                 bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11" ||
-                                     actual.Lexema == "int" || actual.Lexema == "float" || actual.Lexema == "string" ||
-                                     actual.Lexema == "char" || actual.Lexema == "boolean" || actual.Lexema == "bool";
+                                     lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "string" ||
+                                     lexemaMin == "char" || lexemaMin == "boolean" || lexemaMin == "bool";
 
                 if (esDeclaracion && i + 1 < listaTokensCompletos.Count)
                 {

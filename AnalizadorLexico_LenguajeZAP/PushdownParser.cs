@@ -14,14 +14,13 @@ namespace AnalizadorLexico_LenguajeZAP
             { "S", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "PR27", new List<string> { "PR27", "PR20", "BODY", "PR12", "PR20" } },
                 { "ID",   new List<string> {"ID", "OPASIG", "EXP", "CS15" } },
-                { "PR19", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PR11", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PR13", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PR02", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PR03", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PRO3", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-                { "PR28", new List<string> { "TIPO", "ID", "OPASIG", "EXP", "CS15" } },
-
+                { "PR19", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PR11", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PR13", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PR02", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PR03", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PRO3", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "PR28", new List<string> { "TIPO", "ID", "DECL_REST" } },
                 { "PR18", new List<string> { "PR18", "OP-","OP>","ID", "CS15" } },
                 { "PR22", new List<string> { "PR22", "ARG_PRINT", "CS15" } },
                 { "PR16", new List<string> { "PR16", "CS20", "CONDIC", "CS21", "CS24", "BODY", "CS25", "ELSE_OPT" } },
@@ -32,6 +31,10 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR15", new List<string> { "PR15", "TIPO", "ID", "CS20", "P", "CS21", "CS24", "B", "CS25" } },
                 { "PR01", new List<string> { "PR01", "TIPO", "ID", "FIN_AR" } }          
             }},
+            { "DECL_REST", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
+              { "OPASIG", new List<string> { "OPASIG", "EXP", "CS15" } },
+              { "CS15",   new List<string> { "CS15" } }
+             }},
             { "BODY", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "PR27", new List<string> { "S", "BODY" } },
                 { "ID",   new List<string> { "S", "BODY" } },
@@ -690,9 +693,11 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "ARGC": return "otro elemento para realizar la condicion (Identificador, Número)";
                 case "ARG_PRINT": return "argumentos válidos para la instrucción";
                 case "$": return "el final del archivo";
+                case "DECL_REST": return "una asignación (=) o un punto y coma (;)";
 
                 default:
                     return $"'{token}'";
+           
             }
         }
     }
