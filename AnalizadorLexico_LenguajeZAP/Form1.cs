@@ -19,24 +19,20 @@ namespace AnalizadorLexico_LenguajeZAP
         private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
         private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
 
-        // ------------------------------------------------
-        // 1. ESTRUCTURA Y TABLA DE SÍMBOLOS CON SCOPE Y MEMORIA
-        // ------------------------------------------------
         public class Simbolo
         {
             public int Id { get; set; }
             public string Lexema { get; set; }
-            public string TipoDato { get; set; }     // "int", "float", "string", "char", "boolean"
-            public string Scope { get; set; }        // "Global" o "Local"
-            public int Direccion { get; set; }       // Desplazamiento de memoria en bytes (Offset)
-            public bool EstaInicializada { get; set; } // Control de uso sin inicializar
-            public object Valor { get; set; }        // Valor asignado
+            public string TipoDato { get; set; }     
+            public string Scope { get; set; }        
+            public int Direccion { get; set; }       
+            public bool EstaInicializada { get; set; } 
+            public object Valor { get; set; }        
         }
 
         private Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
         private int contadorID = 1;
 
-        // Contadores de offset de memoria
         private int offsetGlobal = 0;
         private int offsetLocal = 0;
 
@@ -51,7 +47,6 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtNumeros.SelectionAlignment = HorizontalAlignment.Right;
             rTxtNumeros.ScrollBars = RichTextBoxScrollBars.None;
 
-            // Eventos para el RichTextBox de Tokens
             rTxtTokens.TextChanged += ActualizarNumerosTokens;
             rTxtTokens.VScroll += ActualizarNumerosTokens;
             rTxtTokens.Resize += ActualizarNumerosTokens;
@@ -628,9 +623,6 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        // ------------------------------------------------
-        // 2. MÉTODOS AUXILIARES PARA ASIGNACIÓN DE MEMORIA
-        // ------------------------------------------------
         private int ObtenerTamanoBytes(string tipoDato)
         {
             switch (tipoDato.ToLower())
@@ -642,37 +634,32 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "pr11":
                 case "string":
                 case "pr28":
-                    return 4; // 4 bytes en memoria (int, float, o puntero de string)
+                    return 4;
                 case "char":
-                    return 2; // 2 bytes en Unicode
+                    return 2;
                 case "boolean":
                 case "bool":
                 case "pr02":
-                    return 1; // 1 byte
+                    return 1;
                 default:
                     return 4;
             }
         }
 
-        // ------------------------------------------------
-        // 3. ANÁLISIS SEMÁNTICO CON SCOPE, MEMORIA Y ERRORES
-        // ------------------------------------------------
         public void AnalizadorSemantico()
         {
             int erroresSemanticos = 0;
-            int nivelBloque = 0; // Nivel 0 = Global, Nivel > 0 = Local
+            int nivelBloque = 0;
             offsetGlobal = 0;
             offsetLocal = 0;
 
             string codigo = rTxtCodigoFuente.Text;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
 
-            // 1. RECORRIDO COMPLETO DE TOKENS PARA DETECTAR DECLARACIONES, SCOPE Y MEMORIA
             for (int i = 0; i < listaTokensCompletos.Count; i++)
             {
                 var actual = listaTokensCompletos[i];
 
-                // Manejo de Bloques para Scope (Global/Local)
                 if (actual.Lexema == "{")
                 {
                     nivelBloque++;
@@ -682,7 +669,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (nivelBloque > 0) nivelBloque--;
                 }
 
-                // DETECCIÓN DE DECLARACIÓN DE VARIABLES CON TOLERANCIA A MAYÚSCULAS
                 string lexemaMin = actual.Lexema.ToLower();
                 bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11" ||
                                      lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "string" ||
@@ -703,31 +689,28 @@ namespace AnalizadorLexico_LenguajeZAP
                         {
                             Simbolo sim = tablaSimbolos[idenLexema];
                             sim.TipoDato = tipoNormalizado;
-                            sim.Scope = (nivelBloque == 0) ? "Global" : "Local"; // Asignación de Scope
+                            sim.Scope = (nivelBloque == 0) ? "Global" : "Local";
 
-                            // Generación de Direcciones de Memoria
                             int bytes = ObtenerTamanoBytes(tipoNormalizado);
                             if (sim.Scope == "Global")
                             {
                                 sim.Direccion = offsetGlobal;
-                                offsetGlobal += bytes; // Offset acumulado en memoria Global
+                                offsetGlobal += bytes;
                             }
                             else
                             {
                                 sim.Direccion = offsetLocal;
-                                offsetLocal += bytes; // Offset acumulado en memoria Local (Stack Frame)[cite: 14]
+                                offsetLocal += bytes;
                             }
 
-                            // Verificar si tiene inicialización inmediata: int $A = 10;
                             if (i + 2 < listaTokensCompletos.Count && listaTokensCompletos[i + 2].Lexema == "=")
                             {
-                                sim.EstaInicializada = true; // Se marca como inicializada[cite: 14]
+                                sim.EstaInicializada = true; 
                             }
                         }
                     }
                 }
 
-                // CHECK: USO DE VARIABLES NO DECLARADAS O NO INICIALIZADAS[cite: 14]
                 if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion)
                 {
                     if (i > 0 && listaTokensCompletos[i - 1].Lexema != "int" && listaTokensCompletos[i - 1].Lexema != "string" &&
@@ -738,13 +721,11 @@ namespace AnalizadorLexico_LenguajeZAP
                         {
                             Simbolo sim = tablaSimbolos[actual.Lexema];
 
-                            // Error de Variable no Declarada (CS0103)[cite: 14]
                             if (string.IsNullOrEmpty(sim.TipoDato) || sim.TipoDato == "Desconocido")
                             {
                                 ImprimirErrorSemantico(actual.Linea, $"Error CS0103: El nombre '{actual.Lexema}' no existe en el contexto o ámbito actual.");
                                 erroresSemanticos++;
                             }
-                            // Error de Variable no Inicializada[cite: 14]
                             else if (!sim.EstaInicializada && i + 1 < listaTokensCompletos.Count && listaTokensCompletos[i + 1].Lexema != "=")
                             {
                                 ImprimirErrorSemantico(actual.Linea, $"Error Semántico: Uso de la variable '{actual.Lexema}' no inicializada.");
@@ -754,7 +735,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
-                // CHECK: ASIGNACIONES Y COMPATIBILIDAD DE TIPOS
                 if (actual.Token.StartsWith("IDEN") && i + 2 < listaTokensCompletos.Count)
                 {
                     var operador = listaTokensCompletos[i + 1];
@@ -765,11 +745,10 @@ namespace AnalizadorLexico_LenguajeZAP
                         if (tablaSimbolos.ContainsKey(actual.Lexema))
                         {
                             Simbolo sim = tablaSimbolos[actual.Lexema];
-                            sim.EstaInicializada = true; // Marca inicializada tras asignación[cite: 14]
+                            sim.EstaInicializada = true;
 
                             string tipoVariable = sim.TipoDato;
 
-                            // Si se asigna otra variable
                             if (valor.Token.StartsWith("IDEN") || valor.Lexema.StartsWith("$"))
                             {
                                 if (tablaSimbolos.ContainsKey(valor.Lexema))
@@ -784,7 +763,6 @@ namespace AnalizadorLexico_LenguajeZAP
                             }
                             else
                             {
-                                // Validaciones directas por tipo de dato[cite: 10, 14]
                                 if ((tipoVariable == "int" || tipoVariable == "PR19") && valor.Token != "CONENTERO" && !int.TryParse(valor.Lexema, out _))
                                 {
                                     ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'int'. No se le puede asignar el valor '{valor.Lexema}'.");
@@ -809,10 +787,8 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
-            // 2. EVALUACIÓN Y CÁLCULO DE VALORES DE EXPRESIONES
             EvaluarValoresVariables();
 
-            // 3. REFLEJAR LOS RESULTADOS EN EL DATAGRIDVIEW CON COLUMNAS COMPLETAS
             ActualizarDataGrid();
 
             if (erroresSemanticos > 0)
@@ -839,7 +815,7 @@ namespace AnalizadorLexico_LenguajeZAP
         private bool EsCompatible(string tipoDestino, string tipoOrigen)
         {
             if (tipoDestino == tipoOrigen) return true;
-            if (tipoDestino == "float" && tipoOrigen == "int") return true; // Promoción implícita int -> float[cite: 10, 12]
+            if (tipoDestino == "float" && tipoOrigen == "int") return true; 
             return false;
         }
 
@@ -954,14 +930,11 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        // ------------------------------------------------
-        // 4. ACTUALIZACIÓN GRÁFICA DE LA TABLA DE SÍMBOLOS
-        // ------------------------------------------------
         private void ActualizarDataGrid()
         {
             dtgTablaSimbolos.Rows.Clear();
 
-            // Configurar columnas en el DataGridView si no han sido agregadas aún
+        
             if (dtgTablaSimbolos.Columns.Count < 6)
             {
                 dtgTablaSimbolos.Columns.Clear();
@@ -969,7 +942,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 dtgTablaSimbolos.Columns.Add("colLexema", "Lexema");
                 dtgTablaSimbolos.Columns.Add("colTipo", "Tipo Dato");
                 dtgTablaSimbolos.Columns.Add("colScope", "Scope");
-                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección (Bytes)"); // Offset asignado en memoria[cite: 14]
+                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección (Bytes)"); 
                 dtgTablaSimbolos.Columns.Add("colValor", "Valor");
             }
 
@@ -982,7 +955,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     item.Lexema,
                     item.TipoDato ?? "Desconocido",
                     item.Scope ?? "Global",
-                    item.Direccion + " bytes", // Muestra la dirección calculada[cite: 14]
+                    item.Direccion + " bytes", 
                     respuesta,
                     item.Valor ?? "null"
                 );
