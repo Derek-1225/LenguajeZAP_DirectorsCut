@@ -168,7 +168,8 @@ namespace AnalizadorLexico_LenguajeZAP
             { "OPA", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "ID",   new List<string> { "ARGO" } },
                 { "CN",   new List<string> { "ARGO" } },
-                { "CS20", new List<string> { "ARGO" } }
+                { "CS20", new List<string> { "ARGO" } },
+                { "CAD", new List<string> { "ARGO" } },
             }},
             { "OA", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "OP+",  new List<string> { "OP+" } },  { "OP-",  new List<string> { "OP-" } },
@@ -179,6 +180,7 @@ namespace AnalizadorLexico_LenguajeZAP
             { "ARGO", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "ID",   new List<string> { "ID", "ARGO_REST" } },
                 { "CN",   new List<string> { "CN", "ARGO_REST" } },
+                { "CAD",   new List<string> { "CAD", "ARGO_REST" } },
                 { "CS20", new List<string> { "CS20", "OPA", "CS21", "ARGO_REST" } }
             }},
             { "ARGO_REST", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
