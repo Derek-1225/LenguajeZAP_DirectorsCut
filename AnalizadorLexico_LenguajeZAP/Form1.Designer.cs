@@ -50,13 +50,6 @@
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.Identificador = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Nombre = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TipoDato = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Scope = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Direccion = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.EstaInicializada = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Valor = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -273,14 +266,6 @@
             this.dtgTablaSimbolos.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dtgTablaSimbolos.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
             this.dtgTablaSimbolos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dtgTablaSimbolos.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.Identificador,
-            this.Nombre,
-            this.TipoDato,
-            this.Scope,
-            this.Direccion,
-            this.EstaInicializada,
-            this.Valor});
             this.dtgTablaSimbolos.Location = new System.Drawing.Point(4, 5);
             this.dtgTablaSimbolos.Margin = new System.Windows.Forms.Padding(2);
             this.dtgTablaSimbolos.Name = "dtgTablaSimbolos";
@@ -324,52 +309,6 @@
             this.label2.TabIndex = 3;
             this.label2.Text = "Integrantes del Equipo\r\nEmmanuel Blanco Samaniego 23100139\r\nDerek Alexander Camar" +
     "ena Zequeida 23100141\r\nCarlos Eduardo Contreras Hernández 23100151\r\n";
-            // 
-            // Identificador
-            // 
-            this.Identificador.HeaderText = "Identificador";
-            this.Identificador.MinimumWidth = 6;
-            this.Identificador.Name = "Identificador";
-            this.Identificador.ReadOnly = true;
-            // 
-            // Nombre
-            // 
-            this.Nombre.HeaderText = "Nombre";
-            this.Nombre.MinimumWidth = 6;
-            this.Nombre.Name = "Nombre";
-            this.Nombre.ReadOnly = true;
-            // 
-            // TipoDato
-            // 
-            this.TipoDato.HeaderText = "Tipo de Dato";
-            this.TipoDato.MinimumWidth = 6;
-            this.TipoDato.Name = "TipoDato";
-            this.TipoDato.ReadOnly = true;
-            // 
-            // Scope
-            // 
-            this.Scope.HeaderText = "Alcance";
-            this.Scope.Name = "Scope";
-            this.Scope.ReadOnly = true;
-            // 
-            // Direccion
-            // 
-            this.Direccion.HeaderText = "Direccion";
-            this.Direccion.Name = "Direccion";
-            this.Direccion.ReadOnly = true;
-            // 
-            // EstaInicializada
-            // 
-            this.EstaInicializada.HeaderText = "¿Inicializada?";
-            this.EstaInicializada.Name = "EstaInicializada";
-            this.EstaInicializada.ReadOnly = true;
-            // 
-            // Valor
-            // 
-            this.Valor.HeaderText = "Valor";
-            this.Valor.MinimumWidth = 6;
-            this.Valor.Name = "Valor";
-            this.Valor.ReadOnly = true;
             // 
             // Form1
             // 
@@ -421,13 +360,6 @@
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Identificador;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Nombre;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TipoDato;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Scope;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Direccion;
-        private System.Windows.Forms.DataGridViewTextBoxColumn EstaInicializada;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Valor;
     }
 }
 

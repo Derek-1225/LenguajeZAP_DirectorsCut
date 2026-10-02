@@ -10,11 +10,13 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using System.IO;
+using System.Reflection;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
     public partial class Form1 : Form
     {
+
         private List<string> listaTokensExtraidos = new List<string>();
         private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
         private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
@@ -25,6 +27,7 @@ namespace AnalizadorLexico_LenguajeZAP
             public string Lexema { get; set; }
             public string TipoDato { get; set; }     
             public string Scope { get; set; }        
+            public int Tamano { get; set; }
             public int Direccion { get; set; }       
             public bool EstaInicializada { get; set; } 
             public object Valor { get; set; }        
@@ -625,24 +628,33 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private int ObtenerTamanoBytes(string tipoDato)
         {
+            if (string.IsNullOrEmpty(tipoDato)) return 0;
+
             switch (tipoDato.ToLower())
             {
                 case "int":
                 case "pr19":
-                case "float":
-                case "double":
-                case "pr11":
-                case "string":
-                case "pr28":
                     return 4;
+
+                case "float":
+                    return 4;
+
+                case "double":
+                    return 8;
+
                 case "char":
-                    return 2;
+                    return 1;
+
                 case "boolean":
                 case "bool":
                 case "pr02":
                     return 1;
+
+                case "string":
+                    return 256;
+
                 default:
-                    return 4;
+                    return 0;
             }
         }
 
@@ -652,6 +664,9 @@ namespace AnalizadorLexico_LenguajeZAP
             int nivelBloque = 0;
             offsetGlobal = 0;
             offsetLocal = 0;
+
+            Stack<HashSet<string>> ambitos = new Stack<HashSet<string>>();
+            ambitos.Push(new HashSet<string>());
 
             string codigo = rTxtCodigoFuente.Text;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
@@ -663,10 +678,12 @@ namespace AnalizadorLexico_LenguajeZAP
                 if (actual.Lexema == "{")
                 {
                     nivelBloque++;
+                    ambitos.Push(new HashSet<string>());
                 }
                 else if (actual.Lexema == "}")
                 {
                     if (nivelBloque > 0) nivelBloque--;
+                    ambitos.Pop();
                 }
 
                 string lexemaMin = actual.Lexema.ToLower();
@@ -684,6 +701,7 @@ namespace AnalizadorLexico_LenguajeZAP
                         string tipoNormalizado = NormalizarTipo(actual.Lexema, actual.Token);
 
                         tablaTiposVariables[siguiente.Token] = tipoNormalizado;
+                        ambitos.Peek().Add(idenLexema);
 
                         if (tablaSimbolos.ContainsKey(idenLexema))
                         {
@@ -692,6 +710,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             sim.Scope = (nivelBloque == 0) ? "Global" : "Local";
 
                             int bytes = ObtenerTamanoBytes(tipoNormalizado);
+                            sim.Tamano = bytes;
                             if (sim.Scope == "Global")
                             {
                                 sim.Direccion = offsetGlobal;
@@ -713,20 +732,27 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion)
                 {
-                    if (i > 0 && listaTokensCompletos[i - 1].Lexema != "int" && listaTokensCompletos[i - 1].Lexema != "string" &&
-                        listaTokensCompletos[i - 1].Lexema != "float" && listaTokensCompletos[i - 1].Lexema != "char" &&
-                        listaTokensCompletos[i - 1].Lexema != "boolean" && !listaTokensCompletos[i - 1].Token.StartsWith("PR"))
+                    bool estaEnAlcance = false;
+                    foreach (var scope in ambitos)
+                    {
+                        if (scope.Contains(actual.Lexema))
+                        {
+                            estaEnAlcance = true;
+                            break;
+                        }
+                    }
+
+                    if (!estaEnAlcance)
+                    {
+                        ImprimirErrorSemantico(actual.Linea, $"Error de Alcance: La variable '{actual.Lexema}' no existe en el contexto o bloque actual.");
+                        erroresSemanticos++;
+                    }
+                    else
                     {
                         if (tablaSimbolos.ContainsKey(actual.Lexema))
                         {
                             Simbolo sim = tablaSimbolos[actual.Lexema];
-
-                            if (string.IsNullOrEmpty(sim.TipoDato) || sim.TipoDato == "Desconocido")
-                            {
-                                ImprimirErrorSemantico(actual.Linea, $"Error CS0103: El nombre '{actual.Lexema}' no existe en el contexto o ámbito actual.");
-                                erroresSemanticos++;
-                            }
-                            else if (!sim.EstaInicializada && i + 1 < listaTokensCompletos.Count && listaTokensCompletos[i + 1].Lexema != "=")
+                            if (!sim.EstaInicializada && i + 1 < listaTokensCompletos.Count && listaTokensCompletos[i + 1].Lexema != "=")
                             {
                                 ImprimirErrorSemantico(actual.Linea, $"Error Semántico: Uso de la variable '{actual.Lexema}' no inicializada.");
                                 erroresSemanticos++;
@@ -749,37 +775,39 @@ namespace AnalizadorLexico_LenguajeZAP
 
                             string tipoVariable = sim.TipoDato;
 
-                            if (valor.Token.StartsWith("IDEN") || valor.Lexema.StartsWith("$"))
+                            List<(string Lexema, string Token)> expTokens = new List<(string, string)>();
+                            for (int j = i + 2; j < listaTokensCompletos.Count; j++)
                             {
-                                if (tablaSimbolos.ContainsKey(valor.Lexema))
+                                if (listaTokensCompletos[j].Lexema == ";") break;
+                                expTokens.Add((listaTokensCompletos[j].Lexema, listaTokensCompletos[j].Token));
+                            }
+
+                            if (tipoVariable == "boolean" || tipoVariable == "bool" || tipoVariable == "PR02")
+                            {
+                                bool boolInvalido = false;
+                                foreach (var t in expTokens)
                                 {
-                                    string tipoAsignado = tablaSimbolos[valor.Lexema].TipoDato;
-                                    if (!EsCompatible(tipoVariable, tipoAsignado))
-                                    {
-                                        ImprimirErrorSemantico(actual.Linea, $"Incompatibilidad de tipos. No se puede asignar tipo '{tipoAsignado}' a la variable '{actual.Lexema}' de tipo '{tipoVariable}'.");
-                                        erroresSemanticos++;
-                                    }
+                                    if (t.Token == "CONENTERO" && t.Lexema != "0" && t.Lexema != "1") boolInvalido = true;
+                                    if (t.Token == "CONDEC" || t.Token == "CAD") boolInvalido = true;
+                                }
+                                if (boolInvalido)
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable '{actual.Lexema}' booleana solo admite valores 0 y 1 en sus operaciones.");
+                                    erroresSemanticos++;
                                 }
                             }
-                            else
+
+                            if (tipoVariable == "int" || tipoVariable == "PR19")
                             {
-                                if ((tipoVariable == "int" || tipoVariable == "PR19") && valor.Token != "CONENTERO" && !int.TryParse(valor.Lexema, out _))
+                                bool intInvalido = false;
+                                foreach (var t in expTokens)
                                 {
-                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'int'. No se le puede asignar el valor '{valor.Lexema}'.");
-                                    erroresSemanticos++;
+                                    if (t.Token == "CONDEC" || t.Lexema.Contains(".")) intInvalido = true;
                                 }
-                                else if ((tipoVariable == "string" || tipoVariable == "PR28") && valor.Token != "CAD" && !valor.Lexema.StartsWith("\""))
+                                if (intInvalido)
                                 {
-                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' es de tipo 'string'. No se le puede asignar el valor '{valor.Lexema}'.");
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{actual.Lexema}' (int) no admite inicializaciones con valores decimales.");
                                     erroresSemanticos++;
-                                }
-                                else if (tipoVariable == "boolean" || tipoVariable == "bool" || tipoVariable == "PR02")
-                                {
-                                    if (valor.Lexema != "0" && valor.Lexema != "1" && valor.Lexema != "true" && valor.Lexema != "false")
-                                    {
-                                        ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable booleana '{actual.Lexema}' solo admite valores booleanos (0, 1, true, false). Se encontró '{valor.Lexema}'.");
-                                        erroresSemanticos++;
-                                    }
                                 }
                             }
                         }
@@ -837,9 +865,9 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    tablaSimbolos[iden].TipoDato = NormalizarTipo(tipo, "");
-                    tablaSimbolos[iden].Valor = valor;
-                    tablaSimbolos[iden].EstaInicializada = true;
+                    string tipoNormal = NormalizarTipo(tipo, "");
+                    tablaSimbolos[iden].TipoDato = tipoNormal;
+                    tablaSimbolos[iden].Valor = EvaluarExpresion(valor, tipoNormal); 
                 }
             }
 
@@ -851,10 +879,35 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    tablaSimbolos[iden].TipoDato = NormalizarTipo(tipo, "");
-                    if (tablaSimbolos[iden].Valor == null)
+                    string tipoNormal = NormalizarTipo(tipo, "");
+                    tablaSimbolos[iden].TipoDato = tipoNormal;
+                    if (tablaSimbolos[iden].Valor == null || tablaSimbolos[iden].Valor.ToString() == "null")
                     {
-                        tablaSimbolos[iden].Valor = "null";
+                        switch (tipoNormal)
+                        {
+                            case "int":
+                            case "PR19": // Si usas tokens para los tipos
+                                tablaSimbolos[iden].Valor = "0";
+                                break;
+                            case "float":
+                            case "double":
+                                tablaSimbolos[iden].Valor = "0.0";
+                                break;
+                            case "string":
+                                tablaSimbolos[iden].Valor = "\"\"";
+                                break;
+                            case "char":
+                                tablaSimbolos[iden].Valor = "''";
+                                break;
+                            case "boolean":
+                            case "bool":
+                            case "PR02":
+                                tablaSimbolos[iden].Valor = "0";
+                                break;
+                            default:
+                                tablaSimbolos[iden].Valor = "0";
+                                break;
+                        }
                     }
                 }
             }
@@ -867,18 +920,18 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if (tablaSimbolos.ContainsKey(iden))
                 {
-                    string valorResuelto = EvaluarExpresion(expresionOriginal);
+                    string tipoVar = tablaSimbolos[iden].TipoDato;
+                    string valorResuelto = EvaluarExpresion(expresionOriginal, tipoVar);
                     tablaSimbolos[iden].Valor = valorResuelto;
-                    tablaSimbolos[iden].EstaInicializada = true;
                 }
             }
         }
 
-        private string EvaluarExpresion(string expresion)
+        private string EvaluarExpresion(string expresion, string tipoDato = "")
         {
             if (string.IsNullOrWhiteSpace(expresion)) return "";
 
-            bool esOperacionCadena = expresion.Contains("\"");
+            bool esOperacionCadena = expresion.Contains("\"") || tipoDato == "string";
             MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
 
             foreach (Match varMatch in variables)
@@ -891,58 +944,68 @@ namespace AnalizadorLexico_LenguajeZAP
                     string valorActual = simbolo.Valor?.ToString() ?? "";
 
                     if (simbolo.TipoDato == "string" || valorActual.StartsWith("\""))
-                    {
                         esOperacionCadena = true;
-                    }
 
                     if (valorActual == "null" || string.IsNullOrEmpty(valorActual))
-                    {
                         valorActual = esOperacionCadena ? "\"\"" : "0";
-                    }
 
                     expresion = expresion.Replace(nombreVar, valorActual);
                 }
             }
 
-            if (esOperacionCadena)
+            // Reglas Operaciones Booleanas exactas (+, *, !)
+            if (tipoDato == "boolean" || tipoDato == "bool" || tipoDato == "PR02")
             {
-                string[] partes = expresion.Split('+');
-                string resultadoCadena = "";
-
-                foreach (string parte in partes)
+                try
                 {
-                    string terminoLimpio = parte.Trim().Trim('"');
-                    resultadoCadena += terminoLimpio;
-                }
+                    string exprBool = Regex.Replace(expresion, @"!(?!=)", " NOT "); // Previene estropear el operador !=
+                    exprBool = exprBool.Replace("+", " OR ").Replace("*", " AND ");
+                    exprBool = exprBool.Replace("1", " true ").Replace("0", " false ");
 
-                return $"\"{resultadoCadena}\"";
+                    DataTable dtBool = new DataTable();
+                    var res = dtBool.Compute(exprBool, "");
+                    bool bRes = Convert.ToBoolean(res);
+                    return bRes ? "1" : "0";
+                }
+                catch { return "0"; }
             }
 
             try
             {
                 DataTable dt = new DataTable();
                 var resultado = dt.Compute(expresion, "");
-                return resultado.ToString();
+                string resultStr = resultado.ToString();
+
+                // Truncar si la variable asignada es de tipo entero
+                if (tipoDato == "int" || tipoDato == "PR19")
+                {
+                    if (double.TryParse(resultStr, out double dVal))
+                    {
+                        return ((int)Math.Truncate(dVal)).ToString();
+                    }
+                }
+                return resultStr;
             }
-            catch
-            {
-                return expresion;
-            }
+            catch { return expresion; }
         }
+
+        
 
         private void ActualizarDataGrid()
         {
             dtgTablaSimbolos.Rows.Clear();
 
-        
-            if (dtgTablaSimbolos.Columns.Count < 6)
+
+            if (dtgTablaSimbolos.Columns.Count < 8)
             {
                 dtgTablaSimbolos.Columns.Clear();
                 dtgTablaSimbolos.Columns.Add("colId", "ID");
                 dtgTablaSimbolos.Columns.Add("colLexema", "Lexema");
                 dtgTablaSimbolos.Columns.Add("colTipo", "Tipo Dato");
                 dtgTablaSimbolos.Columns.Add("colScope", "Scope");
-                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección (Bytes)"); 
+                dtgTablaSimbolos.Columns.Add("colTamano", "Tamaño (Bytes)"); 
+                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección");  
+                dtgTablaSimbolos.Columns.Add("colInit", "Inicializada");
                 dtgTablaSimbolos.Columns.Add("colValor", "Valor");
             }
 
@@ -951,14 +1014,15 @@ namespace AnalizadorLexico_LenguajeZAP
                 string respuesta=item.EstaInicializada? "Sí" : "No";
 
                 dtgTablaSimbolos.Rows.Add(
-                    item.Id,
-                    item.Lexema,
-                    item.TipoDato ?? "Desconocido",
-                    item.Scope ?? "Global",
-                    item.Direccion + " bytes", 
-                    respuesta,
-                    item.Valor ?? "null"
-                );
+                item.Id,
+                item.Lexema,
+                item.TipoDato ?? "Desconocido",
+                item.Scope ?? "Global",
+                item.Tamano,
+                item.Direccion.ToString(),
+                respuesta,
+                item.Valor ?? "null"
+                  );
             }
         }
 
@@ -973,4 +1037,5 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.SelectionColor = Color.Black;
         }
     }
+    
 }
