@@ -337,7 +337,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             seCerraronComillas = true;
                             break;
                         }
-                        cadena += lineaConEspacio[i];
+                        cadena += lineaConEspacio[i]; 
                         i++;
                     }
 
