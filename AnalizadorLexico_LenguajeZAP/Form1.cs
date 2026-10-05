@@ -794,7 +794,8 @@ namespace AnalizadorLexico_LenguajeZAP
                         List<(string Lexema, string Token)> expTokens = new List<(string, string)>();
                         for (int j = i + 1; j < listaTokensCompletos.Count; j++)
                         {
-                            if (listaTokensCompletos[j].Lexema == ";") break;
+                            // Ahora el analizador de tipos se detiene correctamente en el punto y coma o en la coma del For
+                            if (listaTokensCompletos[j].Lexema == ";" || listaTokensCompletos[j].Lexema == ",") break;
                             expTokens.Add((listaTokensCompletos[j].Lexema, listaTokensCompletos[j].Token));
                         }
 
@@ -874,10 +875,10 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             string codigo = rTxtCodigoFuente.Text;
             string codigoLimpio = Regex.Replace(codigo, @"//.*", "");
-
-            string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
-            string patronDeclaracionSinValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*;";
-            string patronAsignacion = @"(\$[a-zA-Z0-9_]+)\s*=\s*([^;]+);";
+            // Modificamos las RegEx para ignorar el '==' de las condiciones y detenerse tanto en ';' como en ','
+            string patronDeclaracionConValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*=(?!=)\s*(.*?)\s*(?:;|\s,\s)";
+            string patronDeclaracionSinValor = @"\b(int|double|float|string|char|bool|boolean)\b\s+(\$[a-zA-Z0-9_]+)\s*(?:;|\s,\s)";
+            string patronAsignacion = @"(\$[a-zA-Z0-9_]+)\s*=(?!=)\s*(.*?)\s*(?:;|\s,\s)";
 
             MatchCollection declaracionesConValor = Regex.Matches(codigoLimpio, patronDeclaracionConValor);
             foreach (Match m in declaracionesConValor)
@@ -1032,7 +1033,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 return resultStr;
             }
             catch { return expresion; }
-
         }
 
 
@@ -1076,13 +1076,15 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             if (string.IsNullOrEmpty(lexema)) return "";
 
+            // 1. Literal de Cadena
             if (token == "CAD" || lexema.StartsWith("\""))
                 return "string";
 
+            // 2. Literales Numéricos
             if (token == "CONENTERO" || token == "CONDEC" || double.TryParse(lexema, out _))
                 return "number";
 
-     
+            // 3. Variables registradas en la Tabla de Símbolos
             if (tablaSimbolos.ContainsKey(lexema))
             {
                 string t = tablaSimbolos[lexema].TipoDato?.ToLower() ?? "";
