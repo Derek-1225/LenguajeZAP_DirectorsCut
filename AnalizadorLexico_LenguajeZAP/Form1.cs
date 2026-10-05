@@ -954,21 +954,20 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             if (string.IsNullOrWhiteSpace(expresion)) return "";
 
-            bool esOperacionCadena = expresion.Contains("\"") || tipoDato == "string" || tipoDato=="PR28";
-            MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
+            bool esOperacionCadena = expresion.Contains("\"") || tipoDato == "string" || tipoDato == "PR28";
 
-            foreach (Match varMatch in variables)
+            expresion = Regex.Replace(expresion, @"\$[a-zA-Z0-9_]+", match =>
             {
-                string nombreVar = varMatch.Value;
+                string nombreVar = match.Value;
                 if (tablaSimbolos.ContainsKey(nombreVar))
                 {
                     string val = tablaSimbolos[nombreVar].Valor?.ToString() ?? "";
                     if (string.IsNullOrEmpty(val) || val == "null")
-                        val = (tipoDato == "string") ? "\"\"" : "0";
-
-                    expresion = expresion.Replace(nombreVar, val);
+                        return (tipoDato == "string") ? "\"\"" : "0";
+                    return val;
                 }
-            }
+                return match.Value;
+            });
 
             if (esOperacionCadena)
             {
@@ -1001,14 +1000,11 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
-
-
-            // Reglas Operaciones Booleanas exactas (+, *, !)
             if (tipoDato == "boolean" || tipoDato == "bool" || tipoDato == "PR02")
             {
                 try
                 {
-                    string exprBool = Regex.Replace(expresion, @"!(?!=)", " NOT "); // Previene estropear el operador !=
+                    string exprBool = Regex.Replace(expresion, @"!(?!=)", " NOT ");
                     exprBool = exprBool.Replace("+", " OR ").Replace("*", " AND ");
                     exprBool = exprBool.Replace("1", " true ").Replace("0", " false ");
 
@@ -1026,7 +1022,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 var resultado = dt.Compute(expresion, "");
                 string resultStr = resultado.ToString();
 
-                // Truncar si la variable asignada es de tipo entero
                 if (tipoDato == "int" || tipoDato == "PR19")
                 {
                     if (double.TryParse(resultStr, out double dVal))
@@ -1037,9 +1032,10 @@ namespace AnalizadorLexico_LenguajeZAP
                 return resultStr;
             }
             catch { return expresion; }
+
         }
 
-        
+
 
         private void ActualizarDataGrid()
         {
@@ -1074,6 +1070,28 @@ namespace AnalizadorLexico_LenguajeZAP
                 item.Valor ?? "null"
                   );
             }
+        }
+
+         private string ObtenerTipoOperando(string lexema, string token)
+        {
+            if (string.IsNullOrEmpty(lexema)) return "";
+
+            if (token == "CAD" || lexema.StartsWith("\""))
+                return "string";
+
+            if (token == "CONENTERO" || token == "CONDEC" || double.TryParse(lexema, out _))
+                return "number";
+
+     
+            if (tablaSimbolos.ContainsKey(lexema))
+            {
+                string t = tablaSimbolos[lexema].TipoDato?.ToLower() ?? "";
+                if (t == "string" || t == "pr28" || t == "cadena") return "string";
+                if (t == "int" || t == "float" || t == "double" || t == "pr19") return "number";
+                if (t == "bool" || t == "boolean" || t == "pr02") return "bool";
+            }
+
+            return "";
         }
 
         private void ImprimirErrorSemantico(int linea, string mensaje)
