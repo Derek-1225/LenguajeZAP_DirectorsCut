@@ -183,9 +183,9 @@ namespace AnalizadorLexico_LenguajeZAP
                     AnalizadorSemantico();
                 }
             }
-        }
 
-        private void PegarTextoPlano()
+        }
+     private void PegarTextoPlano()
         {
             if (Clipboard.ContainsText())
             {
@@ -989,7 +989,7 @@ namespace AnalizadorLexico_LenguajeZAP
             catch { return expresion; }
         }
 
-        
+
 
         private void ActualizarDataGrid()
         {
@@ -1003,15 +1003,15 @@ namespace AnalizadorLexico_LenguajeZAP
                 dtgTablaSimbolos.Columns.Add("colLexema", "Lexema");
                 dtgTablaSimbolos.Columns.Add("colTipo", "Tipo Dato");
                 dtgTablaSimbolos.Columns.Add("colScope", "Scope");
-                dtgTablaSimbolos.Columns.Add("colTamano", "Tamaño (Bytes)"); 
-                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección");  
+                dtgTablaSimbolos.Columns.Add("colTamano", "Tamaño (Bytes)");
+                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección");
                 dtgTablaSimbolos.Columns.Add("colInit", "Inicializada");
                 dtgTablaSimbolos.Columns.Add("colValor", "Valor");
             }
 
             foreach (var item in tablaSimbolos.Values)
             {
-                string respuesta=item.EstaInicializada? "Sí" : "No";
+                string respuesta = item.EstaInicializada ? "Sí" : "No";
 
                 dtgTablaSimbolos.Rows.Add(
                 item.Id,

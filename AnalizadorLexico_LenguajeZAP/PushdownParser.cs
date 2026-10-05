@@ -16,6 +16,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "ID",   new List<string> {"ID", "OPASIG", "EXP", "CS15" } },
                 { "PR19", new List<string> { "TIPO", "ID", "DECL_REST" } },
                 { "PR11", new List<string> { "TIPO", "ID", "DECL_REST" } },
+                { "CS24", new List<string> { "CS24", "BODY", "CS25" } },
                 { "PR13", new List<string> { "TIPO", "ID", "DECL_REST" } },
                 { "PR02", new List<string> { "TIPO", "ID", "DECL_REST" } },
                 { "PR03", new List<string> { "TIPO", "ID", "DECL_REST" } },
@@ -376,9 +377,9 @@ namespace AnalizadorLexico_LenguajeZAP
                 if (top.Equals("BODY", StringComparison.OrdinalIgnoreCase))
                 {
                     string[] firstS = {
-                        "PR27", "ID", "PR16", "PR17", "PR29", "PR10", "PR09", "PR14", "PR26", "PR15", "PR01",
-                        "PR19", "PR11", "PR13", "PR02", "PR03", "PRO3", "PR28","PR22","PR18"
-                    };
+                     "PR27", "ID", "PR16", "PR17", "PR29", "PR10", "PR09", "PR14", "PR26", "PR15", "PR01",
+                     "PR19", "PR11", "PR13", "PR02", "PR03", "PRO3", "PR28","PR22","PR18", "CS24"
+                };
 
                     string[] followBody = { "PR12", "CS25", "PR31", "PR25", "PR17", "$" };
 
@@ -667,6 +668,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "PR13": return "el tipo de dato 'float'";
                 case "PR01": return "la palabra reservada 'array'";
                 case "PR21": return "el valor 'null'";
+
 
                 // Funciones
                 case "PR15": return "la palabra reservada 'function'";
