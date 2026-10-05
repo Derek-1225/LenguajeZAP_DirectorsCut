@@ -760,6 +760,26 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
+                if (actual.Lexema == "+" || actual.Token == "OP+" || actual.Token == "OPSUM")
+                {
+                    if (i > 0 && i + 1 < listaTokensCompletos.Count)
+                    {
+                        var left = listaTokensCompletos[i - 1];
+                        var right = listaTokensCompletos[i + 1];
+
+                        string tipoLeft = ObtenerTipoOperando(left.Lexema, left.Token);
+                        string tipoRight = ObtenerTipoOperando(right.Lexema, right.Token);
+
+                        // Bloquear mezclas directas entre cadenas y números/booleanos
+                        if ((tipoLeft == "string" && tipoRight != "string") || (tipoLeft != "string" && tipoRight == "string"))
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: No se puede sumar/concatenar una cadena ('{left.Lexema}') con un tipo numérico/booleano ('{right.Lexema}').");
+                            erroresSemanticos++;
+                        }
+                    }
+                }
+
+
                 if ((actual.Lexema == "=" || actual.Token == "OPASIG") && i > 0)
                 {
                     var varAsignada = listaTokensCompletos[i - 1];
@@ -934,27 +954,54 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             if (string.IsNullOrWhiteSpace(expresion)) return "";
 
-            bool esOperacionCadena = expresion.Contains("\"") || tipoDato == "string";
+            bool esOperacionCadena = expresion.Contains("\"") || tipoDato == "string" || tipoDato=="PR28";
             MatchCollection variables = Regex.Matches(expresion, @"\$[a-zA-Z0-9_]+");
 
             foreach (Match varMatch in variables)
             {
                 string nombreVar = varMatch.Value;
-
                 if (tablaSimbolos.ContainsKey(nombreVar))
                 {
-                    var simbolo = tablaSimbolos[nombreVar];
-                    string valorActual = simbolo.Valor?.ToString() ?? "";
+                    string val = tablaSimbolos[nombreVar].Valor?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(val) || val == "null")
+                        val = (tipoDato == "string") ? "\"\"" : "0";
 
-                    if (simbolo.TipoDato == "string" || valorActual.StartsWith("\""))
-                        esOperacionCadena = true;
-
-                    if (valorActual == "null" || string.IsNullOrEmpty(valorActual))
-                        valorActual = esOperacionCadena ? "\"\"" : "0";
-
-                    expresion = expresion.Replace(nombreVar, valorActual);
+                    expresion = expresion.Replace(nombreVar, val);
                 }
             }
+
+            if (esOperacionCadena)
+            {
+                try
+                {
+                    if (expresion.Contains("+"))
+                    {
+                        string[] partes = expresion.Split('+');
+                        StringBuilder sb = new StringBuilder();
+
+                        foreach (var p in partes)
+                        {
+                            string parteLimpia = p.Trim();
+                            if (parteLimpia.StartsWith("\"") && parteLimpia.EndsWith("\"") && parteLimpia.Length >= 2)
+                            {
+                                sb.Append(parteLimpia.Substring(1, parteLimpia.Length - 2));
+                            }
+                            else
+                            {
+                                sb.Append(parteLimpia.Replace("\"", ""));
+                            }
+                        }
+                        return "\"" + sb.ToString() + "\"";
+                    }
+                    return expresion.Trim();
+                }
+                catch
+                {
+                    return expresion;
+                }
+            }
+
+
 
             // Reglas Operaciones Booleanas exactas (+, *, !)
             if (tipoDato == "boolean" || tipoDato == "bool" || tipoDato == "PR02")
@@ -992,7 +1039,30 @@ namespace AnalizadorLexico_LenguajeZAP
             catch { return expresion; }
         }
 
-        
+        private string ObtenerTipoOperando(string lexema, string token)
+        {
+            if (string.IsNullOrEmpty(lexema)) return "";
+
+            // 1. Literal de Cadena
+            if (token == "CAD" || lexema.StartsWith("\""))
+                return "string";
+
+            // 2. Literales Numéricos
+            if (token == "CONENTERO" || token == "CONDEC" || double.TryParse(lexema, out _))
+                return "number";
+
+            // 3. Variables registradas en la Tabla de Símbolos
+            if (tablaSimbolos.ContainsKey(lexema))
+            {
+                string t = tablaSimbolos[lexema].TipoDato?.ToLower() ?? "";
+                if (t == "string" || t == "pr28" || t == "cadena") return "string";
+                if (t == "int" || t == "float" || t == "double" || t == "pr19") return "number";
+                if (t == "bool" || t == "boolean" || t == "pr02") return "bool";
+            }
+
+            return "";
+        }
+
 
         private void ActualizarDataGrid()
         {
