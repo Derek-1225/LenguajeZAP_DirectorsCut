@@ -455,24 +455,27 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 if (top.Equals("EXP", StringComparison.OrdinalIgnoreCase))
                 {
-                    stack.Pop();
                     if (lookahead.Equals("PR26", StringComparison.OrdinalIgnoreCase))
                     {
+                        stack.Pop();
                         stack.Push("LLAMADA");
                         result.TraceSteps.Add("[REGLA APLICADA] EXP -> LLAMADA");
                     }
                     else if (lookahead.Equals("CAD", StringComparison.OrdinalIgnoreCase))
                     {
+                        stack.Pop();
                         stack.Push("CAD");
                         result.TraceSteps.Add("[REGLA APLICADA] EXP -> CAD");
                     }
                     else if (lookahead.Equals("CS20", StringComparison.OrdinalIgnoreCase))
                     {
+                        stack.Pop();
                         stack.Push("OPA");
                         result.TraceSteps.Add("[REGLA APLICADA] EXP -> OPA (Inicio con Paréntesis)");
                     }
                     else if (lookahead.Equals("ID", StringComparison.OrdinalIgnoreCase) || lookahead.Equals("CN", StringComparison.OrdinalIgnoreCase))
                     {
+                        stack.Pop();
                         string nextToken = (index + 1 < inputTokens.Count) ? inputTokens[index + 1] : "";
                         string[] arithmeticOps = { "OP+", "OP-", "OP*", "OP/", "OP++", "OP--", "OP^" };
 
@@ -486,6 +489,13 @@ namespace AnalizadorLexico_LenguajeZAP
                             stack.Push(lookahead);
                             result.TraceSteps.Add($"[REGLA APLICADA] EXP -> {lookahead}");
                         }
+                    }
+                    else
+                    {
+                        // MANEJO DE ERROR: Si después de '=' viene ';' o cualquier token que no sea expresión
+                        result.Errors.Add($"Error de sintaxis en la línea {lineNumber}: Se esperaba un valor o expresión después de '=', pero se encontró {GetFriendlyTokenName(currentInput)}.");
+                        result.Success = false;
+                        return result;
                     }
                     continue;
                 }

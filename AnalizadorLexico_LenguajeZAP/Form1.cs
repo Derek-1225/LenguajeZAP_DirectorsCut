@@ -16,11 +16,12 @@ namespace AnalizadorLexico_LenguajeZAP
 {
     public partial class Form1 : Form
     {
-
+        //Listas para almacenar los tokens extraídos y los tokens completos con su lexema y línea
         private List<string> listaTokensExtraidos = new List<string>();
         private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
         private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
 
+        //Clase que ayudara a representar los elementos de la tabla de símbolos
         public class Simbolo
         {
             public int Id { get; set; }
@@ -33,12 +34,14 @@ namespace AnalizadorLexico_LenguajeZAP
             public object Valor { get; set; }        
         }
 
+        //Aqui se crea la tabla de simbolos y se inicializa
         private Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
         private int contadorID = 1;
 
         private int offsetGlobal = 0;
         private int offsetLocal = 0;
 
+        //Metodo Auxiliar para mostrar el numero de linea en editor de codigo
         public void ConfigurarNumeracion()
         {
             rTxtCodigoFuente.TextChanged += ActualizarNumerosLinea;
@@ -62,7 +65,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             ActualizarNumerosLinea(null, null);
         }
-
+        //Metodo Auxiliar para actualizar el numero de linea en editor de codigo
         private void ActualizarNumerosLinea(object sender, EventArgs e)
         {
             int totalLineas = rTxtCodigoFuente.Lines.Length;
@@ -104,6 +107,7 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtNumerosTokens.Text = sb.ToString();
         }
 
+        //Metodo Auxiliar para aplicar color a los errores
         private void AplicarColorErrores(RichTextBox rtb)
         {
             int posicionOriginal = rtb.SelectionStart;
@@ -143,6 +147,8 @@ namespace AnalizadorLexico_LenguajeZAP
             ConfigurarNumeracion();
         }
 
+
+        //Evento del boton para analizar el codigo fuente
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
             dtgTablaSimbolos.Rows.Clear();
@@ -177,7 +183,9 @@ namespace AnalizadorLexico_LenguajeZAP
 
             if (contadorGlobal == 0)
             {
+                //Si no hay errores léxicos, se procede al análisis sintáctico
                 bool resultadoSintactico = AnalizadorSintactico();
+                //Si el analizador sintáctico es exitoso, se procede al análisis semántico
                 if (resultadoSintactico)
                 {
                     AnalizadorSemantico();
@@ -185,7 +193,8 @@ namespace AnalizadorLexico_LenguajeZAP
             }
 
         }
-     private void PegarTextoPlano()
+        //Metodo auxiliar para permitir pegar texto en el eitor de codigo sin que se altere la fuente y el tamaño de letra
+        private void PegarTextoPlano()
         {
             if (Clipboard.ContainsText())
             {
@@ -200,6 +209,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo auxiliar que permite pegar codigo con ctrl+c
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == (Keys.Control | Keys.V))
@@ -210,6 +220,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
+        //Metodo con el que se obtiene la matriz de transiciones desde la base de datos
         public DataTable ObtenerMatriz()
         {
             DataTable tabla = new DataTable();
@@ -221,7 +232,8 @@ namespace AnalizadorLexico_LenguajeZAP
             }
             return tabla;
         }
-
+        
+        //Metodo que valida una cadena de entrada utilizando la matriz de transiciones
         public string ValidarCadena(DataTable matriz, string cadenaEntrada)
         {
             int estadoActual = 1;
@@ -242,6 +254,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return ObtenerTokenOError(matriz, estadoActual);
         }
 
+        //Metodo que cambia de estado en la matriz
         private int MoverSiguienteEstado(DataTable matriz, int estado, string columna, int[] errores)
         {
             DataRow[] filas = matriz.Select("F1 = " + estado);
@@ -256,6 +269,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return errores[0];
         }
 
+        //Metodo que maneja errores lexico
         private string ObtenerTokenOError(DataTable matriz, int estado)
         {
             DataRow[] filas = matriz.Select("F1 = " + estado);
@@ -266,6 +280,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return "CADENA_NO_VALIDA";
         }
 
+        //Metodo auxiliar para obtener la columna correspondiente en la matriz de transiciones según el caracter de entrada
         private string ObtenerNombreColumnaSQL(char c)
         {
             if (char.IsUpper(c)) return c.ToString() + "1";
@@ -281,6 +296,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo auxiliar que procesa una línea de código fuente para extraer los tokens y manejar errores léxicos
         private string ProcesarLineaParaTokens(DataTable matriz, string textoLinea, int numLinea, RichTextBox rtbErrores, ref int totalErrores)
         {
             if (string.IsNullOrWhiteSpace(textoLinea)) return "";
@@ -455,6 +471,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return sbLinea.ToString();
         }
 
+        //Metodo que verifica si hay errores
         private void VerificarSiEsError(string resultado, string lexema, int linea, RichTextBox rtbErrores, ref int total)
         {
             bool esError = resultado.StartsWith("ER") || resultado.Equals("CADENA_NO_VALIDA");
@@ -480,6 +497,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo con el que se obtiene el token de un elemento del codigo
         private string ObtenerTokenIdentificador(string lexema, DataGridView dgvSimbolos)
         {
             if (tablaSimbolos.ContainsKey(lexema))
@@ -503,6 +521,7 @@ namespace AnalizadorLexico_LenguajeZAP
             return "IDEN" + nuevoID;
         }
 
+        //Evento con el que se guardan los archivos del programa fuente en formato .zap
         private void btnGuardarArchivo_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -525,6 +544,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo auxiliar que permite cargar archivos .zap desde el explorador de archivos
         private void btnCargarPrograma_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -548,6 +568,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo auxiliar que guarda los archivos de tokens
         private void btnGuardarArchivoTokens_Click(object sender, EventArgs e)
         {
             if (rTxtTokens.Text.Contains("ER0") || rTxtTokens.Text.Contains("ER1"))
@@ -577,12 +598,15 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo auxiliar que permite editar el codigo fuente en el editor de codigo
         private void btnEditarPrograma_Click(object sender, EventArgs e)
         {
             rTxtCodigoFuente.ReadOnly = false;
             rTxtCodigoFuente.BackColor = SystemColors.Window;
         }
 
+
+        //Metodo que ejecuta el analisis sintactico
         public bool AnalizadorSintactico()
         {
             listaTokensExtraidos.Clear();
@@ -601,6 +625,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
+            //Invocamos ZapParsingResult para ejecutar el analizador sintáctico (PushdownParser) - Pila sintactica
             ZapParsingResult resultado = PushdownParser.ExecuteParser(listaTokensExtraidos);
             rTxtErrores.Clear();
 
@@ -625,7 +650,8 @@ namespace AnalizadorLexico_LenguajeZAP
                 return false;
             }
         }
-
+        
+        //Metodo auxiliar que obtiene el tamaño en bytes segun el tipo de dato
         private int ObtenerTamanoBytes(string tipoDato)
         {
             if (string.IsNullOrEmpty(tipoDato)) return 0;
@@ -658,6 +684,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        //Metodo que ejecuta el analisis semantico
         public void AnalizadorSemantico()
         {
             int erroresSemanticos = 0;
@@ -794,7 +821,6 @@ namespace AnalizadorLexico_LenguajeZAP
                         List<(string Lexema, string Token)> expTokens = new List<(string, string)>();
                         for (int j = i + 1; j < listaTokensCompletos.Count; j++)
                         {
-                            // Ahora el analizador de tipos se detiene correctamente en el punto y coma o en la coma del For
                             if (listaTokensCompletos[j].Lexema == ";" || listaTokensCompletos[j].Lexema == ",") break;
                             expTokens.Add((listaTokensCompletos[j].Lexema, listaTokensCompletos[j].Token));
                         }
@@ -814,19 +840,72 @@ namespace AnalizadorLexico_LenguajeZAP
                                 erroresSemanticos++;
                             }
                         }
-
-                        // Validación de Enteros (Sin decimales)
+                        
+                        // Validación de Numeros (Sin decimales) 
                         if (tipoVariable == "int" || tipoVariable == "PR19")
                         {
                             bool intInvalido = false;
                             foreach (var t in expTokens)
                             {
-                                if (t.Token == "CONDEC" || t.Lexema.Contains(".")) intInvalido = true;
+                                if (t.Token == "CONDEC" || t.Lexema.Contains("."))
+                                {
+                                    string mensajeError = $"Desbordamiento numérico: El valor decimal '{t.Lexema}' excede el límite permitido para precisión flotante.";
+                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                    intInvalido = true;
+                                    
+                                }
+
+                                if (t.Token == "CONENTERO")
+                                {
+                                    if (!ValidarRangoNumerico(t.Lexema, "int", out string mensajeError))
+                                    {
+                                        mensajeError = $"Desbordamiento numérico: El valor '{t.Lexema}' excede el límite de un entero de 32 bits ({int.MinValue} a {int.MaxValue}).";
+                                        ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                    }
+                                }
+
+                                if (t.Token == "CONEXP")
+                                {
+                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite inicializaciones con valores en notación científica.";
+                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                    intInvalido = true;
+                                }
+
+                                if (t.Token == "CAD")
+                                {
+                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite inicializaciones con valores de tipo cadena.";
+                                    ImprimirErrorSemantico(actual.Linea, mensajeError); 
+                                    intInvalido = true;
+                                }
                             }
+
                             if (intInvalido)
                             {
-                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite inicializaciones con valores decimales.");
                                 erroresSemanticos++;
+                            }
+                        }
+
+                        // Validación de Flotantes 
+                        if (tipoVariable == "float" || tipoVariable == "double" || tipoVariable == "PR11" || tipoVariable == "PR13")
+                        {
+                            foreach (var t in expTokens)
+                            {
+                                if (t.Token == "CONENTERO" || t.Token == "CONDEC")
+                                {
+                                    if (!ValidarRangoNumerico(t.Lexema, tipoVariable, out string mensajeError))
+                                    {
+                                        ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                        erroresSemanticos++;
+                                    }
+                                }
+                                if (t.Token == "CAD")
+                                {
+                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' ({tipoVariable}) no admite inicializaciones con valores de tipo cadena.";
+                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                    erroresSemanticos++;
+                                 
+                                }
+
                             }
                         }
 
@@ -848,16 +927,17 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }   
 
-            ActualizarDataGrid();
 
             if (erroresSemanticos > 0)
             {
                 MessageBox.Show($"Se detectaron {erroresSemanticos} errores semánticos. Revisa el reporte de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                dtgTablaSimbolos.Rows.Clear();
             }
             else
             {
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis semántico completado con éxito! Tipos, Scope y Direcciones de Memoria correctos.\n");
+                ActualizarDataGrid();
             }
         }
 
@@ -1001,7 +1081,19 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
 
-            if (tipoDato == "boolean" || tipoDato == "bool" || tipoDato == "PR02")
+            if(tipoDato=="float" || tipoDato=="PR11")
+            {
+                try
+                {
+                    DataTable dtFloat = new DataTable();
+                    var resFloat = dtFloat.Compute(expresion, "");
+                    return Convert.ToDouble(resFloat).ToString("0.00");
+                }
+                catch { return expresion; }
+            }
+
+
+            if (tipoDato == "bool" || tipoDato == "PR02")
             {
                 try
                 {
@@ -1094,6 +1186,30 @@ namespace AnalizadorLexico_LenguajeZAP
             }
 
             return "";
+        }
+
+        // Método auxiliar para validar constantes numéricas (evitar desbordamiento)
+        private static bool ValidarRangoNumerico(string tokenValor, string tipoDato, out string mensajeError)
+        {
+            mensajeError = string.Empty;
+
+            if (tipoDato.Equals("int", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!long.TryParse(tokenValor, out long valorLong) || valorLong < int.MinValue || valorLong > int.MaxValue)
+                {
+                    
+                    return false;
+                }
+            }
+            else if (tipoDato.Equals("float", StringComparison.OrdinalIgnoreCase) || tipoDato.Equals("double", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!double.TryParse(tokenValor, out double valorDouble) || double.IsInfinity(valorDouble))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void ImprimirErrorSemantico(int linea, string mensaje)
