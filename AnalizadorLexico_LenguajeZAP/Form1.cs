@@ -20,6 +20,8 @@ namespace AnalizadorLexico_LenguajeZAP
         private List<string> listaTokensExtraidos = new List<string>();
         private List<(string Token, string Lexema, int Linea)> listaTokensCompletos = new List<(string, string, int)>();
         private Dictionary<string, string> tablaTiposVariables = new Dictionary<string, string>();
+        List<(string Lexema, string Token)> expTokens = new List<(string, string)>();
+        public List<InstruccionP> codigoIntermedio = new List<InstruccionP>();
 
         //Clase que ayudara a representar los elementos de la tabla de símbolos
         public class Simbolo
@@ -188,7 +190,16 @@ namespace AnalizadorLexico_LenguajeZAP
                 //Si el analizador sintáctico es exitoso, se procede al análisis semántico
                 if (resultadoSintactico)
                 {
-                    AnalizadorSemantico();
+                    bool resultadoSemantico = AnalizadorSemantico();
+                    if (resultadoSemantico)
+                    {
+                        GenerarCodigoIntermedio();
+                    }
+                    else
+                    {
+                        ActualizarDataGrid();
+                        rtCodigoIntermedio.Clear();
+                    }
                 }
             }
 
@@ -685,7 +696,7 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         //Metodo que ejecuta el analisis semantico
-        public void AnalizadorSemantico()
+        public bool AnalizadorSemantico()
         {
             int erroresSemanticos = 0;
             int nivelBloque = 0;
@@ -1017,12 +1028,14 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 //MessageBox.Show($"Se detectaron {erroresSemanticos} errores semánticos. Revisa el reporte de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 ActualizarDataGrid();
+                return false;
             }
             else
             {
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis semántico completado con éxito! Tipos, Scope y Direcciones de Memoria correctos.\n");
                 ActualizarDataGrid();
+                return true;
             }
         }
 
@@ -1357,8 +1370,135 @@ namespace AnalizadorLexico_LenguajeZAP
                 //Si el analizador sintáctico es exitoso, se procede al análisis semántico
                 if (resultadoSintactico)
                 {
-                    AnalizadorSemantico();
+                    bool resultadoSemantico = AnalizadorSemantico();
+                    if (resultadoSemantico)
+                    {
+                        GenerarCodigoIntermedio();
+                    }
+                    else
+                    {
+                        ActualizarDataGrid();
+                        rtCodigoIntermedio.Clear();
+                    }
                 }
+            }
+        }
+
+        public void GenerarCodigoIntermedio()
+        {
+            codigoIntermedio.Clear();
+            rtCodigoIntermedio.Clear();
+
+            for (int i = 0; i < listaTokensCompletos.Count; i++)
+            {
+                var actual = listaTokensCompletos[i];
+
+                // 1. Detección de estructura DO-WHILE
+                if (actual.Lexema.ToLower() == "do")
+                {
+                    int indiceLlaveApertura = -1;
+                    int indiceLlaveCierre = -1;
+                    int nivelLlaves = 0;
+
+                    // Encontrar delimitadores de bloque { }
+                    for (int j = i; j < listaTokensCompletos.Count; j++)
+                    {
+                        if (listaTokensCompletos[j].Lexema == "{")
+                        {
+                            if (nivelLlaves == 0) indiceLlaveApertura = j;
+                            nivelLlaves++;
+                        }
+                        else if (listaTokensCompletos[j].Lexema == "}")
+                        {
+                            nivelLlaves--;
+                            if (nivelLlaves == 0) { indiceLlaveCierre = j; break; }
+                        }
+                    }
+
+                    if (indiceLlaveApertura != -1 && indiceLlaveCierre != -1)
+                    {
+                        List<InstruccionP> cuerpoInstrucciones = new List<InstruccionP>();
+
+                        // Procesar asignaciones internas dentro del cuerpo del do
+                        for (int k = indiceLlaveApertura + 1; k < indiceLlaveCierre; k++)
+                        {
+                            if (listaTokensCompletos[k].Lexema == "=" || listaTokensCompletos[k].Token == "OPASIG")
+                            {
+                                if (k > 0)
+                                {
+                                    var varAsignada = listaTokensCompletos[k - 1];
+                                    List<string> expTokensLexemas = new List<string>();
+
+                                    for (int m = k + 1; m < indiceLlaveCierre; m++)
+                                    {
+                                        if (listaTokensCompletos[m].Lexema == ";" || listaTokensCompletos[m].Lexema == ",") break;
+                                        expTokensLexemas.Add(listaTokensCompletos[m].Lexema);
+                                    }
+
+                                    if (expTokensLexemas.Count > 0)
+                                    {
+                                        var instsAsignacion = InstruccionP.GenerarCodigoDinamico(varAsignada.Lexema, expTokensLexemas);
+                                        cuerpoInstrucciones.AddRange(instsAsignacion);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Encontrar la condición del while después de la llave de cierre
+                        int indiceWhile = -1;
+                        for (int k = indiceLlaveCierre; k < listaTokensCompletos.Count; k++)
+                        {
+                            if (listaTokensCompletos[k].Lexema.ToLower() == "while") { indiceWhile = k; break; }
+                        }
+
+                        if (indiceWhile != -1)
+                        {
+                            List<string> condTokens = new List<string>();
+                            bool capturando = false;
+
+                            for (int k = indiceWhile; k < listaTokensCompletos.Count; k++)
+                            {
+                                if (listaTokensCompletos[k].Lexema == "(") { capturando = true; continue; }
+                                if (listaTokensCompletos[k].Lexema == ")") { break; }
+                                if (capturando) { condTokens.Add(listaTokensCompletos[k].Lexema); }
+                            }
+
+                            // Delegar la generación completa del do-while a la clase InstruccionP
+                            List<InstruccionP> codigoDoWhile = InstruccionP.GenerarCodigoDoWhile(condTokens, cuerpoInstrucciones);
+                            codigoIntermedio.AddRange(codigoDoWhile);
+
+                            // Avanzar el cursor del ciclo principal para saltar el bloque procesado
+                            i = indiceWhile;
+                            while (i < listaTokensCompletos.Count && listaTokensCompletos[i].Lexema != ";") i++;
+                        }
+                    }
+                }
+                // 2. Detección de asignaciones normales fuera de los ciclos
+                else if (actual.Lexema == "=" || actual.Token == "OPASIG")
+                {
+                    if (i > 0)
+                    {
+                        var varAsignada = listaTokensCompletos[i - 1];
+                        List<string> expTokensLexemas = new List<string>();
+                        for (int j = i + 1; j < listaTokensCompletos.Count; j++)
+                        {
+                            if (listaTokensCompletos[j].Lexema == ";" || listaTokensCompletos[j].Lexema == ",") break;
+                            expTokensLexemas.Add(listaTokensCompletos[j].Lexema);
+                        }
+
+                        if (expTokensLexemas.Count > 0)
+                        {
+                            List<InstruccionP> instruccionesDinamicas = InstruccionP.GenerarCodigoDinamico(varAsignada.Lexema, expTokensLexemas);
+                            codigoIntermedio.AddRange(instruccionesDinamicas);
+                        }
+                    }
+                }
+            }
+
+            // Mostrar el código intermedio resultante en pantalla
+            foreach (var instruccion in codigoIntermedio)
+            {
+                rtCodigoIntermedio.Text += instruccion.ToString() + Environment.NewLine;
             }
         }
     }   

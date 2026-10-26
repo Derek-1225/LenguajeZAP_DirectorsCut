@@ -47,11 +47,11 @@
             this.rTxtErrores = new System.Windows.Forms.RichTextBox();
             this.tabTablaSimbolos = new System.Windows.Forms.TabPage();
             this.dtgTablaSimbolos = new System.Windows.Forms.DataGridView();
+            this.tabCodigoIntermedio = new System.Windows.Forms.TabPage();
+            this.rtCodigoIntermedio = new System.Windows.Forms.RichTextBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.tabCodigoIntermedio = new System.Windows.Forms.TabPage();
-            this.rtCodigoIntermedio = new System.Windows.Forms.RichTextBox();
             this.tabControl1.SuspendLayout();
             this.tabCodigo.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -60,8 +60,8 @@
             this.tabError.SuspendLayout();
             this.tabTablaSimbolos.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dtgTablaSimbolos)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.tabCodigoIntermedio.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -280,6 +280,26 @@
             this.dtgTablaSimbolos.Size = new System.Drawing.Size(947, 540);
             this.dtgTablaSimbolos.TabIndex = 0;
             // 
+            // tabCodigoIntermedio
+            // 
+            this.tabCodigoIntermedio.Controls.Add(this.rtCodigoIntermedio);
+            this.tabCodigoIntermedio.Location = new System.Drawing.Point(4, 22);
+            this.tabCodigoIntermedio.Name = "tabCodigoIntermedio";
+            this.tabCodigoIntermedio.Padding = new System.Windows.Forms.Padding(3);
+            this.tabCodigoIntermedio.Size = new System.Drawing.Size(954, 565);
+            this.tabCodigoIntermedio.TabIndex = 4;
+            this.tabCodigoIntermedio.Text = "Codigo Intermedio";
+            this.tabCodigoIntermedio.UseVisualStyleBackColor = true;
+            // 
+            // rtCodigoIntermedio
+            // 
+            this.rtCodigoIntermedio.Location = new System.Drawing.Point(3, 6);
+            this.rtCodigoIntermedio.Name = "rtCodigoIntermedio";
+            this.rtCodigoIntermedio.ReadOnly = true;
+            this.rtCodigoIntermedio.Size = new System.Drawing.Size(945, 553);
+            this.rtCodigoIntermedio.TabIndex = 0;
+            this.rtCodigoIntermedio.Text = "";
+            // 
             // pictureBox1
             // 
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
@@ -315,25 +335,6 @@
             this.label2.Text = "Integrantes del Equipo\r\nEmmanuel Blanco Samaniego 23100139\r\nDerek Alexander Camar" +
     "ena Zequeida 23100141\r\nCarlos Eduardo Contreras Hernández 23100151\r\n";
             // 
-            // tabCodigoIntermedio
-            // 
-            this.tabCodigoIntermedio.Controls.Add(this.rtCodigoIntermedio);
-            this.tabCodigoIntermedio.Location = new System.Drawing.Point(4, 22);
-            this.tabCodigoIntermedio.Name = "tabCodigoIntermedio";
-            this.tabCodigoIntermedio.Padding = new System.Windows.Forms.Padding(3);
-            this.tabCodigoIntermedio.Size = new System.Drawing.Size(954, 565);
-            this.tabCodigoIntermedio.TabIndex = 4;
-            this.tabCodigoIntermedio.Text = "Codigo Intermedio";
-            this.tabCodigoIntermedio.UseVisualStyleBackColor = true;
-            // 
-            // rtCodigoIntermedio
-            // 
-            this.rtCodigoIntermedio.Location = new System.Drawing.Point(3, 6);
-            this.rtCodigoIntermedio.Name = "rtCodigoIntermedio";
-            this.rtCodigoIntermedio.Size = new System.Drawing.Size(945, 553);
-            this.rtCodigoIntermedio.TabIndex = 0;
-            this.rtCodigoIntermedio.Text = "";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -355,8 +356,8 @@
             this.tabError.ResumeLayout(false);
             this.tabTablaSimbolos.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dtgTablaSimbolos)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.tabCodigoIntermedio.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
