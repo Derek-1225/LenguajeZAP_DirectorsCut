@@ -633,7 +633,7 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 rTxtErrores.SelectionColor = Color.Green;
                 rTxtErrores.AppendText("¡Análisis sintáctico completado con éxito! Estructura válida.\n");
-                MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                //MessageBox.Show("El código de tokens cumple perfectamente con la gramática ZAP.", "Análisis Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 rTxtErrores.AppendText("\n=== INICIANDO ANÁLISIS SEMÁNTICO ===\n\n");
                 return true;
             }
@@ -646,7 +646,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     rTxtErrores.SelectionColor = Color.DarkRed;
                     rTxtErrores.AppendText($"• {error}\n");
                 }
-                MessageBox.Show("Se encontraron fallas sintácticas en el orden de los tokens.", "Error de Sintaxis", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //MessageBox.Show("Se encontraron fallas sintácticas en el orden de los tokens.", "Error de Sintaxis", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
         }
@@ -825,72 +825,87 @@ namespace AnalizadorLexico_LenguajeZAP
                             expTokens.Add((listaTokensCompletos[j].Lexema, listaTokensCompletos[j].Token));
                         }
 
-                        // Validación Booleana (Exclusividad {0, 1})
-                        if (tipoVariable == "boolean" || tipoVariable == "bool" || tipoVariable == "PR02")
-                        {
-                            bool boolInvalido = false;
-                            foreach (var t in expTokens)
-                            {
-                                if (t.Token == "CONENTERO" && t.Lexema != "0" && t.Lexema != "1") boolInvalido = true;
-                                if (t.Token == "CONDEC" || t.Token == "CAD") boolInvalido = true;
-                            }
-                            if (boolInvalido)
-                            {
-                                ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable '{varAsignada.Lexema}' booleana solo admite valores 0 y 1 en sus operaciones.");
-                                erroresSemanticos++;
-                            }
-                        }
-                        
-                        // Validación de Numeros (Sin decimales) 
+
+                        // =========================================================================
+                        // 1. VALIDACIÓN PARA ENTEROS (int / PR19)
+                        // =========================================================================
                         if (tipoVariable == "int" || tipoVariable == "PR19")
                         {
                             bool intInvalido = false;
+                            string causaInvalida = "";
+
                             foreach (var t in expTokens)
                             {
+                                // A) Rechazar decimales literales
                                 if (t.Token == "CONDEC" || t.Lexema.Contains("."))
                                 {
-                                    string mensajeError = $"Desbordamiento numérico: El valor decimal '{t.Lexema}' excede el límite permitido para precisión flotante.";
-                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
                                     intInvalido = true;
-                                    
+                                    causaInvalida = "valores decimales";
                                 }
-
-                                if (t.Token == "CONENTERO")
+                                // B) Rechazar cadenas de texto literales
+                                else if (t.Token == "CAD" || t.Token.StartsWith("CAD"))
+                                {
+                                    intInvalido = true;
+                                    causaInvalida = "cadenas de texto";
+                                }
+                                // C) Validar variables ($): sólo acepta variables registradas como 'int'
+                                else if (t.Token == "ID" || t.Token.StartsWith("ID") || t.Lexema.StartsWith("$"))
+                                {
+                                    string tipoReg = ObtenerTipoVariable(t.Lexema);
+                                    if (tipoReg != "int" && tipoReg != "pr19")
+                                    {
+                                        intInvalido = true;
+                                        string tipoMostrar = string.IsNullOrEmpty(tipoReg) ? "desconocido" : tipoReg;
+                                        causaInvalida = $"la variable '{t.Lexema}' de tipo '{tipoMostrar}'";
+                                    }
+                                }
+                                // D) Control de Desbordamiento Numérico en enteros constantes
+                                else if (t.Token == "CONENTERO")
                                 {
                                     if (!ValidarRangoNumerico(t.Lexema, "int", out string mensajeError))
                                     {
-                                        mensajeError = $"Desbordamiento numérico: El valor '{t.Lexema}' excede el límite de un entero de 32 bits ({int.MinValue} a {int.MaxValue}).";
                                         ImprimirErrorSemantico(actual.Linea, mensajeError);
+                                        erroresSemanticos++;
                                     }
-                                }
-
-                                if (t.Token == "CONEXP")
-                                {
-                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite inicializaciones con valores en notación científica.";
-                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
-                                    intInvalido = true;
-                                }
-
-                                if (t.Token == "CAD")
-                                {
-                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite inicializaciones con valores de tipo cadena.";
-                                    ImprimirErrorSemantico(actual.Linea, mensajeError); 
-                                    intInvalido = true;
                                 }
                             }
 
                             if (intInvalido)
                             {
+                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{varAsignada.Lexema}' (int) no admite asignaciones ni operaciones con {causaInvalida}.");
                                 erroresSemanticos++;
                             }
                         }
 
-                        // Validación de Flotantes 
-                        if (tipoVariable == "float" || tipoVariable == "double" || tipoVariable == "PR11" || tipoVariable == "PR13")
+                        // =========================================================================
+                        // 2. VALIDACIÓN PARA FLOTANTES (float / double / PR11, PR13)
+                        // =========================================================================
+                        else if (tipoVariable == "float" || tipoVariable == "double" || tipoVariable == "PR11" || tipoVariable == "PR13")
                         {
+                            bool floatInvalido = false;
+                            string causaInvalida = "";
+
                             foreach (var t in expTokens)
                             {
-                                if (t.Token == "CONENTERO" || t.Token == "CONDEC")
+                                // A) Rechazar cadenas de texto
+                                if (t.Token == "CAD" || t.Token.StartsWith("CAD"))
+                                {
+                                    floatInvalido = true;
+                                    causaInvalida = "cadenas de texto";
+                                }
+                                // B) Validar variables ($): acepta sólo variables de tipo flotante o entero (si permites int -> float)
+                                else if (t.Token == "ID" || t.Token.StartsWith("ID") || t.Lexema.StartsWith("$"))
+                                {
+                                    string tipoReg = ObtenerTipoVariable(t.Lexema);
+                                    if (tipoReg != "float" && tipoReg != "double" && tipoReg != "pr11" && tipoReg != "pr13" && tipoReg != "int" && tipoReg != "pr19")
+                                    {
+                                        floatInvalido = true;
+                                        string tipoMostrar = string.IsNullOrEmpty(tipoReg) ? "desconocido" : tipoReg;
+                                        causaInvalida = $"la variable '{t.Lexema}' de tipo '{tipoMostrar}'";
+                                    }
+                                }
+                                // C) Control de Desbordamiento Numérico en decimales o enteros constantes
+                                else if (t.Token == "CONENTERO" || t.Token == "CONDEC")
                                 {
                                     if (!ValidarRangoNumerico(t.Lexema, tipoVariable, out string mensajeError))
                                     {
@@ -898,28 +913,98 @@ namespace AnalizadorLexico_LenguajeZAP
                                         erroresSemanticos++;
                                     }
                                 }
-                                if (t.Token == "CAD")
-                                {
-                                    string mensajeError = $"Error de Tipo: La variable '{varAsignada.Lexema}' ({tipoVariable}) no admite inicializaciones con valores de tipo cadena.";
-                                    ImprimirErrorSemantico(actual.Linea, mensajeError);
-                                    erroresSemanticos++;
-                                 
-                                }
+                            }
 
+                            if (floatInvalido)
+                            {
+                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{varAsignada.Lexema}' ({tipoVariable}) no admite asignaciones ni operaciones con {causaInvalida}.");
+                                erroresSemanticos++;
                             }
                         }
 
-                        // Validación de Cadenas (Sin números)
-                        if (tipoVariable == "string" || tipoVariable == "PR28")
+                        // =========================================================================
+                        // 3. VALIDACIÓN PARA BOOLEANOS (bool / boolean / PR02)
+                        // =========================================================================
+                        else if (tipoVariable == "boolean" || tipoVariable == "bool" || tipoVariable == "PR02")
                         {
-                            bool stringInvalido = false;
+                            bool boolInvalido = false;
+                            string causaInvalida = "";
+
                             foreach (var t in expTokens)
                             {
-                                if (t.Token == "CONENTERO" || t.Token == "CONDEC") stringInvalido = true;
+                                // A) Exclusividad de constantes numéricas: sólo 0 y 1
+                                if (t.Token == "CONENTERO")
+                                {
+                                    if (t.Lexema != "0" && t.Lexema != "1")
+                                    {
+                                        boolInvalido = true;
+                                        causaInvalida = $"el entero '{t.Lexema}' (un booleano solo admite 0 y 1)";
+                                    }
+                                }
+                                // B) Rechazar decimales
+                                else if (t.Token == "CONDEC" || t.Lexema.Contains("."))
+                                {
+                                    boolInvalido = true;
+                                    causaInvalida = "valores decimales";
+                                }
+                                // C) Rechazar cadenas de texto
+                                else if (t.Token == "CAD" || t.Token.StartsWith("CAD"))
+                                {
+                                    boolInvalido = true;
+                                    causaInvalida = $"la cadena \"{t.Lexema}\"";
+                                }
+                                // D) Validar variables ($): sólo acepta variables registradas como 'bool'
+                                else if (t.Token == "ID" || t.Token.StartsWith("ID") || t.Lexema.StartsWith("$"))
+                                {
+                                    string tipoReg = ObtenerTipoVariable(t.Lexema);
+                                    if (tipoReg != "bool" && tipoReg != "boolean" && tipoReg != "pr02")
+                                    {
+                                        boolInvalido = true;
+                                        string tipoMostrar = string.IsNullOrEmpty(tipoReg) ? "desconocido" : tipoReg;
+                                        causaInvalida = $"la variable '{t.Lexema}' de tipo '{tipoMostrar}'";
+                                    }
+                                }
                             }
+
+                            if (boolInvalido)
+                            {
+                                ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La variable '{varAsignada.Lexema}' (bool) no admite {causaInvalida}.");
+                                erroresSemanticos++;
+                            }
+                        }
+
+                        // =========================================================================
+                        // 4. VALIDACIÓN PARA CADENAS (string / PR28)
+                        // =========================================================================
+                        else if (tipoVariable == "string" || tipoVariable == "PR28")
+                        {
+                            bool stringInvalido = false;
+                            string causaInvalida = "";
+
+                            foreach (var t in expTokens)
+                            {
+                                // A) Rechazar literales numéricos (enteros o decimales)
+                                if (t.Token == "CONENTERO" || t.Token == "CONDEC")
+                                {
+                                    stringInvalido = true;
+                                    causaInvalida = $"el valor numérico '{t.Lexema}'";
+                                }
+                                // B) Validar variables ($): sólo acepta variables registradas como 'string'
+                                else if (t.Token == "ID" || t.Token.StartsWith("ID") || t.Lexema.StartsWith("$"))
+                                {
+                                    string tipoReg = ObtenerTipoVariable(t.Lexema);
+                                    if (tipoReg != "string" && tipoReg != "pr28")
+                                    {
+                                        stringInvalido = true;
+                                        string tipoMostrar = string.IsNullOrEmpty(tipoReg) ? "desconocido" : tipoReg;
+                                        causaInvalida = $"la variable '{t.Lexema}' de tipo '{tipoMostrar}'";
+                                    }
+                                }
+                            }
+
                             if (stringInvalido)
                             {
-                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{varAsignada.Lexema}' (string) no admite inicializaciones con valores numericos.");
+                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La variable '{varAsignada.Lexema}' (string) no admite operaciones ni asignaciones con {causaInvalida}.");
                                 erroresSemanticos++;
                             }
                         }
@@ -930,8 +1015,8 @@ namespace AnalizadorLexico_LenguajeZAP
 
             if (erroresSemanticos > 0)
             {
-                MessageBox.Show($"Se detectaron {erroresSemanticos} errores semánticos. Revisa el reporte de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                dtgTablaSimbolos.Rows.Clear();
+                //MessageBox.Show($"Se detectaron {erroresSemanticos} errores semánticos. Revisa el reporte de errores.", "Errores Semánticos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ActualizarDataGrid();
             }
             else
             {
@@ -1164,7 +1249,17 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-         private string ObtenerTipoOperando(string lexema, string token)
+        private string ObtenerTipoVariable(string nombreVariable)
+        {
+            if (tablaSimbolos.ContainsKey(nombreVariable))
+            {
+                return tablaSimbolos[nombreVariable].TipoDato.ToLower();
+            }
+
+            return "";
+        }
+
+        private string ObtenerTipoOperando(string lexema, string token)
         {
             if (string.IsNullOrEmpty(lexema)) return "";
 
@@ -1221,6 +1316,50 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.SelectionColor = Color.DarkOrange;
             rTxtErrores.DeselectAll();
             rTxtErrores.SelectionColor = Color.Black;
+        }
+
+        private void rTxtCodigoFuente_TextChanged(object sender, EventArgs e)
+        {
+            dtgTablaSimbolos.Rows.Clear();
+            tablaSimbolos.Clear();
+            listaTokensCompletos.Clear();
+            tablaTiposVariables.Clear();
+            contadorID = 1;
+            offsetGlobal = 0;
+            offsetLocal = 0;
+
+            rTxtTokens.Clear();
+            rTxtErrores.Clear();
+            int contadorGlobal = 0;
+            DataTable matriz = ObtenerMatriz();
+
+            rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
+            rTxtErrores.AppendText("LÍNEA\tERROR" + Environment.NewLine);
+            rTxtErrores.AppendText("----------------------------------------------------------" + Environment.NewLine);
+
+            string[] lineas = rTxtCodigoFuente.Lines;
+
+            for (int i = 0; i < lineas.Length; i++)
+            {
+                string lineaDeTokens = ProcesarLineaParaTokens(matriz, lineas[i], i + 1, rTxtErrores, ref contadorGlobal);
+                rTxtTokens.AppendText(lineaDeTokens + Environment.NewLine);
+            }
+            AplicarColorErrores(rTxtTokens);
+
+            rTxtErrores.AppendText(Environment.NewLine + "----------------------------------------------------------" + Environment.NewLine);
+            rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
+            rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
+
+            if (contadorGlobal == 0)
+            {
+                //Si no hay errores léxicos, se procede al análisis sintáctico
+                bool resultadoSintactico = AnalizadorSintactico();
+                //Si el analizador sintáctico es exitoso, se procede al análisis semántico
+                if (resultadoSintactico)
+                {
+                    AnalizadorSemantico();
+                }
+            }
         }
     }   
 }
