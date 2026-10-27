@@ -167,6 +167,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="InstruccionP.cs" />
+    <Compile Include="ModernControls.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PushdownParser.cs" />

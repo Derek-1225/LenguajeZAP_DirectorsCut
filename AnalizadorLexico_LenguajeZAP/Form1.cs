@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.ComponentModel;
@@ -62,8 +62,12 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtNumerosTokens.Font = rTxtTokens.Font;
             rTxtNumerosTokens.ReadOnly = true;
             rTxtNumerosTokens.SelectionAlignment = HorizontalAlignment.Right;
-            rTxtNumerosTokens.BackColor = Color.LightGray;
+            rTxtNumerosTokens.BackColor = Color.FromArgb(241, 245, 249);
+            rTxtNumerosTokens.ForeColor = Color.FromArgb(100, 116, 139);
             rTxtNumerosTokens.ScrollBars = RichTextBoxScrollBars.None;
+
+            rTxtNumeros.BackColor = Color.FromArgb(241, 245, 249);
+            rTxtNumeros.ForeColor = Color.FromArgb(100, 116, 139);
 
             ActualizarNumerosLinea(null, null);
         }
@@ -79,6 +83,10 @@ namespace AnalizadorLexico_LenguajeZAP
                 sb.AppendLine(i.ToString());
             }
             rTxtNumeros.Text = sb.ToString();
+            if (lblStatusRight != null)
+            {
+                lblStatusRight.Text = $"Líneas: {totalLineas}  |  Caracteres: {rTxtCodigoFuente.TextLength}  |  Lenguaje ZAP  |  UTF-8";
+            }
         }
 
         private void ActualizarNumerosTokens(object sender, EventArgs e)
@@ -147,6 +155,82 @@ namespace AnalizadorLexico_LenguajeZAP
         private void Form1_Load(object sender, EventArgs e)
         {
             ConfigurarNumeracion();
+            ConfigurarEstilosVisuales();
+        }
+
+        private void ConfigurarEstilosVisuales()
+        {
+            ConfigurarEstiloDataGridView();
+        }
+
+        private void ConfigurarEstiloDataGridView()
+        {
+            if (dtgTablaSimbolos.Columns.Count < 8)
+            {
+                dtgTablaSimbolos.Columns.Clear();
+                dtgTablaSimbolos.Columns.Add("colId", "ID");
+                dtgTablaSimbolos.Columns.Add("colLexema", "Lexema");
+                dtgTablaSimbolos.Columns.Add("colTipo", "Tipo Dato");
+                dtgTablaSimbolos.Columns.Add("colScope", "Scope");
+                dtgTablaSimbolos.Columns.Add("colTamano", "Tamaño (Bytes)");
+                dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección");
+                dtgTablaSimbolos.Columns.Add("colInit", "Inicializada");
+                dtgTablaSimbolos.Columns.Add("colValor", "Valor");
+            }
+
+            dtgTablaSimbolos.EnableHeadersVisualStyles = false;
+            dtgTablaSimbolos.BackgroundColor = Color.FromArgb(248, 250, 252);
+            dtgTablaSimbolos.BorderStyle = BorderStyle.None;
+            dtgTablaSimbolos.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dtgTablaSimbolos.GridColor = Color.FromArgb(226, 232, 240);
+            
+            dtgTablaSimbolos.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            dtgTablaSimbolos.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42);
+            dtgTablaSimbolos.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dtgTablaSimbolos.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5F);
+            dtgTablaSimbolos.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dtgTablaSimbolos.ColumnHeadersDefaultCellStyle.Padding = new Padding(10, 0, 10, 0);
+            dtgTablaSimbolos.ColumnHeadersHeight = 38;
+
+            dtgTablaSimbolos.DefaultCellStyle.BackColor = Color.White;
+            dtgTablaSimbolos.DefaultCellStyle.ForeColor = Color.FromArgb(15, 23, 42);
+            dtgTablaSimbolos.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
+            dtgTablaSimbolos.DefaultCellStyle.SelectionForeColor = Color.FromArgb(30, 64, 175);
+            dtgTablaSimbolos.DefaultCellStyle.Font = new Font("Segoe UI", 9F);
+            dtgTablaSimbolos.DefaultCellStyle.Padding = new Padding(10, 4, 10, 4);
+
+            dtgTablaSimbolos.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+            dtgTablaSimbolos.AlternatingRowsDefaultCellStyle.ForeColor = Color.FromArgb(15, 23, 42);
+            dtgTablaSimbolos.AlternatingRowsDefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
+            dtgTablaSimbolos.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.FromArgb(30, 64, 175);
+            
+            dtgTablaSimbolos.RowHeadersVisible = false;
+            dtgTablaSimbolos.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dtgTablaSimbolos.RowTemplate.Height = 32;
+        }
+
+        private void panelTopBar_Paint(object sender, PaintEventArgs e)
+        {
+            using (Pen pen = new Pen(Color.FromArgb(30, 41, 59), 1))
+            {
+                e.Graphics.DrawLine(pen, 0, panelTopBar.Height - 1, panelTopBar.Width, panelTopBar.Height - 1);
+            }
+        }
+
+        private void panelBottomBar_Paint(object sender, PaintEventArgs e)
+        {
+            using (Pen pen = new Pen(Color.FromArgb(30, 41, 59), 1))
+            {
+                e.Graphics.DrawLine(pen, 0, 0, panelBottomBar.Width, 0);
+            }
+        }
+
+        private void panelSidebar_Paint(object sender, PaintEventArgs e)
+        {
+            using (Pen pen = new Pen(Color.FromArgb(30, 41, 59), 1))
+            {
+                e.Graphics.DrawLine(pen, 0, 0, 0, panelSidebar.Height);
+            }
         }
 
 
@@ -183,7 +267,12 @@ namespace AnalizadorLexico_LenguajeZAP
             rTxtErrores.SelectionFont = new Font(rTxtErrores.Font, FontStyle.Bold);
             rTxtErrores.AppendText("TOTAL DE ERRORES: " + contadorGlobal);
 
-            if (contadorGlobal == 0)
+            if (contadorGlobal > 0)
+            {
+                lblStatusLeft.Text = $"● {contadorGlobal} error(es) léxico(s) detectado(s)";
+                lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
+            }
+            else
             {
                 //Si no hay errores léxicos, se procede al análisis sintáctico
                 bool resultadoSintactico = AnalizadorSintactico();
@@ -194,12 +283,21 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (resultadoSemantico)
                     {
                         GenerarCodigoIntermedio();
+                        lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
+                        lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
                     }
                     else
                     {
                         ActualizarDataGrid();
                         rtCodigoIntermedio.Clear();
+                        lblStatusLeft.Text = "● Errores semánticos detectados";
+                        lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                     }
+                }
+                else
+                {
+                    lblStatusLeft.Text = "● Errores sintácticos detectados";
+                    lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                 }
             }
 
@@ -220,12 +318,17 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        //Metodo auxiliar que permite pegar codigo con ctrl+c
+        //Metodo auxiliar que permite pegar codigo con ctrl+v y compilar con F5
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == (Keys.Control | Keys.V))
             {
                 PegarTextoPlano();
+                return true;
+            }
+            if (keyData == Keys.F5)
+            {
+                btnAnalizarCodigo_Click(btnAnalizarCodigo, EventArgs.Empty);
                 return true;
             }
             return base.ProcessCmdKey(ref msg, keyData);
@@ -1243,6 +1346,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 dtgTablaSimbolos.Columns.Add("colDireccion", "Dirección");
                 dtgTablaSimbolos.Columns.Add("colInit", "Inicializada");
                 dtgTablaSimbolos.Columns.Add("colValor", "Valor");
+                ConfigurarEstiloDataGridView();
             }
 
             foreach (var item in tablaSimbolos.Values)
