@@ -19,13 +19,11 @@ namespace AnalizadorLexico_LenguajeZAP
             Arg2 = arg2;
         }
 
-        // Método auxiliar que recibe el índice para mostrar formato (0) OPERADOR ARG1 ARG2
         public string ToStringConIndice(int index)
         {
             return $"({index})\t{Operador}\t{Arg1}\t{Arg2}";
         }
 
-        // ToString estándar sin parámetros (por si se usa en algún otro lugar genérico)
         public override string ToString()
         {
             return $"{Operador}\t{Arg1}\t{Arg2}";

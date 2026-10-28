@@ -21,7 +21,6 @@ namespace AnalizadorLexico_LenguajeZAP
             contadorTemporales = 1;
         }
 
-        // Mantenemos el nombre original "Compilar" y la nueva lógica separada
         public static ResultadoCompilacion Compilar(
             List<string> tokensInfijos,
             List<Cuadruplo> cuadruplos,
@@ -33,7 +32,6 @@ namespace AnalizadorLexico_LenguajeZAP
             Stack<string> pilaCuadruplos = new Stack<string>();
             Stack<string> pilaTriplos = new Stack<string>();
 
-            // Si la expresión es un solo valor (ej: "10" o "$SU"), no genera operaciones intermedias
             if (postfija.Count == 1)
             {
                 return new ResultadoCompilacion

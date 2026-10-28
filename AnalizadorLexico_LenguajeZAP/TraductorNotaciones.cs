@@ -8,9 +8,7 @@ namespace AnalizadorLexico_LenguajeZAP
 {
     public class TraductorNotaciones
     {
-        // =====================================================================
         // 1. CONVERTIR DE INFIJA A POSTFIJA
-        // =====================================================================
         public static List<string> InfijaAPostfija(List<string> tokensInfijos)
         {
             List<string> salida = new List<string>();
@@ -18,7 +16,6 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var t in tokensInfijos)
             {
-                // Si es un número, una variable (empieza con $), una cadena de texto o un identificador
                 if (EsNumero(t) || t.StartsWith("$") || (t.StartsWith("\"") && t.EndsWith("\"")) || EsIdentificadorValido(t))
                 {
                     salida.Add(t);
@@ -46,11 +43,10 @@ namespace AnalizadorLexico_LenguajeZAP
                     {
                         salida.Add(operadores.Pop());
                     }
-                    if (operadores.Count > 0) operadores.Pop(); // Eliminar el '(' de la pila
+                    if (operadores.Count > 0) operadores.Pop();
                 }
             }
 
-            // Vaciar los operadores restantes en la salida
             while (operadores.Count > 0)
             {
                 salida.Add(operadores.Pop());
@@ -59,38 +55,30 @@ namespace AnalizadorLexico_LenguajeZAP
             return salida;
         }
 
-        // =====================================================================
         // 2. CONVERTIR DE INFIJA A PREFIJA (Notación Polaca)
-        // =====================================================================
         public static List<string> InfijaAPrefija(List<string> tokensInfijos)
         {
-            // Paso 1: Crear una copia de los tokens e invertirla
             var invertida = new List<string>(tokensInfijos);
             invertida.Reverse();
 
-            // Paso 2: Intercambiar los paréntesis de apertura '(' por cierre ')' y viceversa
             for (int i = 0; i < invertida.Count; i++)
             {
                 if (invertida[i] == "(") invertida[i] = ")";
                 else if (invertida[i] == ")") invertida[i] = "(";
             }
 
-            // Paso 3: Aplicar el algoritmo postfijo sobre la lista modificada
             var postfijaInvertida = InfijaAPostfija(invertida);
 
-            // Paso 4: Invertir nuevamente el resultado obtenido para lograr la notación prefija
             postfijaInvertida.Reverse();
             return postfijaInvertida;
         }
 
-        // =====================================================================
         // 3. JERARQUÍA Y PRECEDENCIA DE OPERADORES
-        // =====================================================================
         private static int ObtenerPrecedencia(string operador)
         {
             switch (operador)
             {
-                case "=": return 1; // <-- Añadido para incluir la asignación
+                case "=": return 1; 
                 case "||": return 2;
                 case "&&": return 3;
                 case "==":
@@ -107,9 +95,7 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
-        // =====================================================================
-        // 4. MÉTODOS AUXILIARES DE VALIDACIÓN
-        // =====================================================================
+        //Metodos Auxiliares
         private static bool EsNumero(string texto)
         {
             return double.TryParse(texto, out _);
