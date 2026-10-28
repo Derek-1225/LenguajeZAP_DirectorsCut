@@ -258,7 +258,7 @@ namespace AnalizadorLexico_LenguajeZAP
         //Evento del boton para analizar el codigo fuente
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
         {
-            
+
             dtgTablaSimbolos.Rows.Clear();
             tablaSimbolos.Clear();
             listaTokensCompletos.Clear();
@@ -1505,6 +1505,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (resultadoSemantico)
                     {
                         GenerarCodigoIntermedio();
+                        GenerarTodoDinamico();
                         lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
                         lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
                     }

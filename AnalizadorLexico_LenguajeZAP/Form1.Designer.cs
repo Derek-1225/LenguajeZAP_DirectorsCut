@@ -35,11 +35,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.lblBrandTitle = new System.Windows.Forms.Label();
             this.lblBrandIcon = new System.Windows.Forms.Label();
             this.panelTopActions = new System.Windows.Forms.FlowLayoutPanel();
-            this.badgeDbStatus = new AnalizadorLexico_LenguajeZAP.StatusBadge();
-            this.btnCargarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnEditarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnGuardarArchivo = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnAnalizarCodigo = new AnalizadorLexico_LenguajeZAP.ModernButton();
             this.panelBottomBar = new System.Windows.Forms.Panel();
             this.lblStatusRight = new System.Windows.Forms.Label();
             this.lblStatusLeft = new System.Windows.Forms.Label();
@@ -91,13 +86,18 @@ namespace AnalizadorLexico_LenguajeZAP
             this.panelIntermedioHeader = new System.Windows.Forms.Panel();
             this.lblIntermedioHeaderTitle = new System.Windows.Forms.Label();
             this.tabTriplosCuadruplos = new System.Windows.Forms.TabPage();
-            this.tabNotacionesCodigoTAC = new System.Windows.Forms.TabPage();
-            this.dtgTriplos = new System.Windows.Forms.DataGridView();
             this.dtgCuadruplos = new System.Windows.Forms.DataGridView();
-            this.rtNotacionPrefija = new System.Windows.Forms.RichTextBox();
-            this.rtNotacionInfija = new System.Windows.Forms.RichTextBox();
-            this.rtNotacionPostfija = new System.Windows.Forms.RichTextBox();
+            this.dtgTriplos = new System.Windows.Forms.DataGridView();
+            this.tabNotacionesCodigoTAC = new System.Windows.Forms.TabPage();
             this.rtCodigoTAC = new System.Windows.Forms.RichTextBox();
+            this.rtNotacionPostfija = new System.Windows.Forms.RichTextBox();
+            this.rtNotacionInfija = new System.Windows.Forms.RichTextBox();
+            this.rtNotacionPrefija = new System.Windows.Forms.RichTextBox();
+            this.badgeDbStatus = new AnalizadorLexico_LenguajeZAP.StatusBadge();
+            this.btnCargarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnEditarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnGuardarArchivo = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnAnalizarCodigo = new AnalizadorLexico_LenguajeZAP.ModernButton();
             this.panelTopBar.SuspendLayout();
             this.panelBrand.SuspendLayout();
             this.panelTopActions.SuspendLayout();
@@ -124,9 +124,9 @@ namespace AnalizadorLexico_LenguajeZAP
             this.panelIntermedioCard.SuspendLayout();
             this.panelIntermedioHeader.SuspendLayout();
             this.tabTriplosCuadruplos.SuspendLayout();
-            this.tabNotacionesCodigoTAC.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dtgTriplos)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dtgCuadruplos)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dtgTriplos)).BeginInit();
+            this.tabNotacionesCodigoTAC.SuspendLayout();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -199,107 +199,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.panelTopActions.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.panelTopActions.Size = new System.Drawing.Size(884, 44);
             this.panelTopActions.TabIndex = 1;
-            // 
-            // badgeDbStatus
-            // 
-            this.badgeDbStatus.BadgeBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(78)))), ((int)(((byte)(59)))));
-            this.badgeDbStatus.BadgeTextColor = System.Drawing.Color.FromArgb(((int)(((byte)(167)))), ((int)(((byte)(243)))), ((int)(((byte)(208)))));
-            this.badgeDbStatus.DotColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(211)))), ((int)(((byte)(153)))));
-            this.badgeDbStatus.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F);
-            this.badgeDbStatus.Location = new System.Drawing.Point(3, 8);
-            this.badgeDbStatus.Margin = new System.Windows.Forms.Padding(3, 8, 12, 3);
-            this.badgeDbStatus.Name = "badgeDbStatus";
-            this.badgeDbStatus.Size = new System.Drawing.Size(125, 28);
-            this.badgeDbStatus.TabIndex = 4;
-            this.badgeDbStatus.Text = "BD Conectada";
-            // 
-            // btnCargarPrograma
-            // 
-            this.btnCargarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnCargarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
-            this.btnCargarPrograma.BorderRadius = 6;
-            this.btnCargarPrograma.BorderSize = 1;
-            this.btnCargarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnCargarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnCargarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCargarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnCargarPrograma.ForeColor = System.Drawing.Color.White;
-            this.btnCargarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
-            this.btnCargarPrograma.Location = new System.Drawing.Point(143, 2);
-            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
-            this.btnCargarPrograma.Name = "btnCargarPrograma";
-            this.btnCargarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
-            this.btnCargarPrograma.Size = new System.Drawing.Size(135, 40);
-            this.btnCargarPrograma.TabIndex = 0;
-            this.btnCargarPrograma.Text = "Abrir (.zap)";
-            this.btnCargarPrograma.UseVisualStyleBackColor = true;
-            this.btnCargarPrograma.Click += new System.EventHandler(this.btnCargarPrograma_Click);
-            // 
-            // btnEditarPrograma
-            // 
-            this.btnEditarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnEditarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
-            this.btnEditarPrograma.BorderRadius = 6;
-            this.btnEditarPrograma.BorderSize = 1;
-            this.btnEditarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnEditarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnEditarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnEditarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnEditarPrograma.ForeColor = System.Drawing.Color.White;
-            this.btnEditarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
-            this.btnEditarPrograma.Location = new System.Drawing.Point(287, 2);
-            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
-            this.btnEditarPrograma.Name = "btnEditarPrograma";
-            this.btnEditarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
-            this.btnEditarPrograma.Size = new System.Drawing.Size(125, 40);
-            this.btnEditarPrograma.TabIndex = 1;
-            this.btnEditarPrograma.Text = "Editar Código";
-            this.btnEditarPrograma.UseVisualStyleBackColor = true;
-            this.btnEditarPrograma.Click += new System.EventHandler(this.btnEditarPrograma_Click);
-            // 
-            // btnGuardarArchivo
-            // 
-            this.btnGuardarArchivo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
-            this.btnGuardarArchivo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
-            this.btnGuardarArchivo.BorderRadius = 6;
-            this.btnGuardarArchivo.BorderSize = 1;
-            this.btnGuardarArchivo.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnGuardarArchivo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
-            this.btnGuardarArchivo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnGuardarArchivo.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnGuardarArchivo.ForeColor = System.Drawing.Color.White;
-            this.btnGuardarArchivo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
-            this.btnGuardarArchivo.Location = new System.Drawing.Point(421, 2);
-            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(3, 2, 8, 2);
-            this.btnGuardarArchivo.Name = "btnGuardarArchivo";
-            this.btnGuardarArchivo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(120)))), ((int)(((byte)(87)))));
-            this.btnGuardarArchivo.Size = new System.Drawing.Size(140, 40);
-            this.btnGuardarArchivo.TabIndex = 2;
-            this.btnGuardarArchivo.Text = "Guardar (.zap)";
-            this.btnGuardarArchivo.UseVisualStyleBackColor = true;
-            this.btnGuardarArchivo.Click += new System.EventHandler(this.btnGuardarArchivo_Click);
-            // 
-            // btnAnalizarCodigo
-            // 
-            this.btnAnalizarCodigo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
-            this.btnAnalizarCodigo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(96)))), ((int)(((byte)(165)))), ((int)(((byte)(250)))));
-            this.btnAnalizarCodigo.BorderRadius = 6;
-            this.btnAnalizarCodigo.BorderSize = 1;
-            this.btnAnalizarCodigo.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnAnalizarCodigo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
-            this.btnAnalizarCodigo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnAnalizarCodigo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.btnAnalizarCodigo.ForeColor = System.Drawing.Color.White;
-            this.btnAnalizarCodigo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(130)))), ((int)(((byte)(246)))));
-            this.btnAnalizarCodigo.Location = new System.Drawing.Point(572, 2);
-            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
-            this.btnAnalizarCodigo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(29)))), ((int)(((byte)(78)))), ((int)(((byte)(216)))));
-            this.btnAnalizarCodigo.Size = new System.Drawing.Size(195, 40);
-            this.btnAnalizarCodigo.TabIndex = 3;
-            this.btnAnalizarCodigo.Text = "▶  Compilar y Analizar";
-            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
-            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
             // 
             // panelBottomBar
             // 
@@ -523,7 +422,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Size = new System.Drawing.Size(1034, 692);
-            this.tabControl1.SizeMode = System.Windows.Forms.TabSizeMode.Fixed;
             this.tabControl1.TabIndex = 0;
             this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
             // 
@@ -934,6 +832,22 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabTriplosCuadruplos.Text = "Triplos y Cuadruplos";
             this.tabTriplosCuadruplos.UseVisualStyleBackColor = true;
             // 
+            // dtgCuadruplos
+            // 
+            this.dtgCuadruplos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dtgCuadruplos.Location = new System.Drawing.Point(10, 315);
+            this.dtgCuadruplos.Name = "dtgCuadruplos";
+            this.dtgCuadruplos.Size = new System.Drawing.Size(1000, 293);
+            this.dtgCuadruplos.TabIndex = 1;
+            // 
+            // dtgTriplos
+            // 
+            this.dtgTriplos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dtgTriplos.Location = new System.Drawing.Point(10, 6);
+            this.dtgTriplos.Name = "dtgTriplos";
+            this.dtgTriplos.Size = new System.Drawing.Size(1000, 293);
+            this.dtgTriplos.TabIndex = 0;
+            // 
             // tabNotacionesCodigoTAC
             // 
             this.tabNotacionesCodigoTAC.Controls.Add(this.rtCodigoTAC);
@@ -947,37 +861,13 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabNotacionesCodigoTAC.Text = "Notaciones y Codigo TAC";
             this.tabNotacionesCodigoTAC.UseVisualStyleBackColor = true;
             // 
-            // dtgTriplos
+            // rtCodigoTAC
             // 
-            this.dtgTriplos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dtgTriplos.Location = new System.Drawing.Point(10, 6);
-            this.dtgTriplos.Name = "dtgTriplos";
-            this.dtgTriplos.Size = new System.Drawing.Size(1000, 293);
-            this.dtgTriplos.TabIndex = 0;
-            // 
-            // dtgCuadruplos
-            // 
-            this.dtgCuadruplos.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dtgCuadruplos.Location = new System.Drawing.Point(10, 315);
-            this.dtgCuadruplos.Name = "dtgCuadruplos";
-            this.dtgCuadruplos.Size = new System.Drawing.Size(1000, 293);
-            this.dtgCuadruplos.TabIndex = 1;
-            // 
-            // rtNotacionPrefija
-            // 
-            this.rtNotacionPrefija.Location = new System.Drawing.Point(25, 17);
-            this.rtNotacionPrefija.Name = "rtNotacionPrefija";
-            this.rtNotacionPrefija.Size = new System.Drawing.Size(467, 258);
-            this.rtNotacionPrefija.TabIndex = 0;
-            this.rtNotacionPrefija.Text = "";
-            // 
-            // rtNotacionInfija
-            // 
-            this.rtNotacionInfija.Location = new System.Drawing.Point(543, 17);
-            this.rtNotacionInfija.Name = "rtNotacionInfija";
-            this.rtNotacionInfija.Size = new System.Drawing.Size(467, 258);
-            this.rtNotacionInfija.TabIndex = 1;
-            this.rtNotacionInfija.Text = "";
+            this.rtCodigoTAC.Location = new System.Drawing.Point(543, 302);
+            this.rtCodigoTAC.Name = "rtCodigoTAC";
+            this.rtCodigoTAC.Size = new System.Drawing.Size(467, 258);
+            this.rtCodigoTAC.TabIndex = 3;
+            this.rtCodigoTAC.Text = "";
             // 
             // rtNotacionPostfija
             // 
@@ -987,13 +877,122 @@ namespace AnalizadorLexico_LenguajeZAP
             this.rtNotacionPostfija.TabIndex = 2;
             this.rtNotacionPostfija.Text = "";
             // 
-            // rtCodigoTAC
+            // rtNotacionInfija
             // 
-            this.rtCodigoTAC.Location = new System.Drawing.Point(543, 302);
-            this.rtCodigoTAC.Name = "rtCodigoTAC";
-            this.rtCodigoTAC.Size = new System.Drawing.Size(467, 258);
-            this.rtCodigoTAC.TabIndex = 3;
-            this.rtCodigoTAC.Text = "";
+            this.rtNotacionInfija.Location = new System.Drawing.Point(543, 17);
+            this.rtNotacionInfija.Name = "rtNotacionInfija";
+            this.rtNotacionInfija.Size = new System.Drawing.Size(467, 258);
+            this.rtNotacionInfija.TabIndex = 1;
+            this.rtNotacionInfija.Text = "";
+            // 
+            // rtNotacionPrefija
+            // 
+            this.rtNotacionPrefija.Location = new System.Drawing.Point(25, 17);
+            this.rtNotacionPrefija.Name = "rtNotacionPrefija";
+            this.rtNotacionPrefija.Size = new System.Drawing.Size(467, 258);
+            this.rtNotacionPrefija.TabIndex = 0;
+            this.rtNotacionPrefija.Text = "";
+            // 
+            // badgeDbStatus
+            // 
+            this.badgeDbStatus.BadgeBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(78)))), ((int)(((byte)(59)))));
+            this.badgeDbStatus.BadgeTextColor = System.Drawing.Color.FromArgb(((int)(((byte)(167)))), ((int)(((byte)(243)))), ((int)(((byte)(208)))));
+            this.badgeDbStatus.DotColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(211)))), ((int)(((byte)(153)))));
+            this.badgeDbStatus.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F);
+            this.badgeDbStatus.Location = new System.Drawing.Point(3, 8);
+            this.badgeDbStatus.Margin = new System.Windows.Forms.Padding(3, 8, 12, 3);
+            this.badgeDbStatus.Name = "badgeDbStatus";
+            this.badgeDbStatus.Size = new System.Drawing.Size(125, 28);
+            this.badgeDbStatus.TabIndex = 4;
+            this.badgeDbStatus.Text = "BD Conectada";
+            // 
+            // btnCargarPrograma
+            // 
+            this.btnCargarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnCargarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.btnCargarPrograma.BorderRadius = 6;
+            this.btnCargarPrograma.BorderSize = 1;
+            this.btnCargarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnCargarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnCargarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCargarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnCargarPrograma.ForeColor = System.Drawing.Color.White;
+            this.btnCargarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnCargarPrograma.Location = new System.Drawing.Point(143, 2);
+            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
+            this.btnCargarPrograma.Name = "btnCargarPrograma";
+            this.btnCargarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.btnCargarPrograma.Size = new System.Drawing.Size(135, 40);
+            this.btnCargarPrograma.TabIndex = 0;
+            this.btnCargarPrograma.Text = "Abrir (.zap)";
+            this.btnCargarPrograma.UseVisualStyleBackColor = true;
+            this.btnCargarPrograma.Click += new System.EventHandler(this.btnCargarPrograma_Click);
+            // 
+            // btnEditarPrograma
+            // 
+            this.btnEditarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnEditarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.btnEditarPrograma.BorderRadius = 6;
+            this.btnEditarPrograma.BorderSize = 1;
+            this.btnEditarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnEditarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnEditarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnEditarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnEditarPrograma.ForeColor = System.Drawing.Color.White;
+            this.btnEditarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnEditarPrograma.Location = new System.Drawing.Point(287, 2);
+            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
+            this.btnEditarPrograma.Name = "btnEditarPrograma";
+            this.btnEditarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.btnEditarPrograma.Size = new System.Drawing.Size(125, 40);
+            this.btnEditarPrograma.TabIndex = 1;
+            this.btnEditarPrograma.Text = "Editar Código";
+            this.btnEditarPrograma.UseVisualStyleBackColor = true;
+            this.btnEditarPrograma.Click += new System.EventHandler(this.btnEditarPrograma_Click);
+            // 
+            // btnGuardarArchivo
+            // 
+            this.btnGuardarArchivo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
+            this.btnGuardarArchivo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
+            this.btnGuardarArchivo.BorderRadius = 6;
+            this.btnGuardarArchivo.BorderSize = 1;
+            this.btnGuardarArchivo.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnGuardarArchivo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
+            this.btnGuardarArchivo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnGuardarArchivo.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnGuardarArchivo.ForeColor = System.Drawing.Color.White;
+            this.btnGuardarArchivo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
+            this.btnGuardarArchivo.Location = new System.Drawing.Point(421, 2);
+            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(3, 2, 8, 2);
+            this.btnGuardarArchivo.Name = "btnGuardarArchivo";
+            this.btnGuardarArchivo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(120)))), ((int)(((byte)(87)))));
+            this.btnGuardarArchivo.Size = new System.Drawing.Size(140, 40);
+            this.btnGuardarArchivo.TabIndex = 2;
+            this.btnGuardarArchivo.Text = "Guardar (.zap)";
+            this.btnGuardarArchivo.UseVisualStyleBackColor = true;
+            this.btnGuardarArchivo.Click += new System.EventHandler(this.btnGuardarArchivo_Click);
+            // 
+            // btnAnalizarCodigo
+            // 
+            this.btnAnalizarCodigo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
+            this.btnAnalizarCodigo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(96)))), ((int)(((byte)(165)))), ((int)(((byte)(250)))));
+            this.btnAnalizarCodigo.BorderRadius = 6;
+            this.btnAnalizarCodigo.BorderSize = 1;
+            this.btnAnalizarCodigo.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAnalizarCodigo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
+            this.btnAnalizarCodigo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAnalizarCodigo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            this.btnAnalizarCodigo.ForeColor = System.Drawing.Color.White;
+            this.btnAnalizarCodigo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(130)))), ((int)(((byte)(246)))));
+            this.btnAnalizarCodigo.Location = new System.Drawing.Point(572, 2);
+            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
+            this.btnAnalizarCodigo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(29)))), ((int)(((byte)(78)))), ((int)(((byte)(216)))));
+            this.btnAnalizarCodigo.Size = new System.Drawing.Size(195, 40);
+            this.btnAnalizarCodigo.TabIndex = 3;
+            this.btnAnalizarCodigo.Text = "▶  Compilar y Analizar";
+            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
+            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
             // 
             // Form1
             // 
@@ -1039,9 +1038,9 @@ namespace AnalizadorLexico_LenguajeZAP
             this.panelIntermedioCard.ResumeLayout(false);
             this.panelIntermedioHeader.ResumeLayout(false);
             this.tabTriplosCuadruplos.ResumeLayout(false);
-            this.tabNotacionesCodigoTAC.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dtgTriplos)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dtgCuadruplos)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dtgTriplos)).EndInit();
+            this.tabNotacionesCodigoTAC.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
