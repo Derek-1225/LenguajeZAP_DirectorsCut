@@ -6,9 +6,17 @@ using System.Threading.Tasks;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
+    // 1. CLASE AUXILIAR PÚBLICA A NIVEL DE NAMESPACE
+    public class SwitchCaseNode
+    {
+        public string ValorCaso { get; set; } // null si es 'default'
+        public List<InstruccionP> Instrucciones { get; set; }
+        public bool TieneBreak { get; set; }
+    }
+
     public class InstruccionP
     {
-        public string Operacion { get; set; } // LIT, LOD, STO, ADD, SUB, GT, FJMP, JMP, LABEL, etc.
+        public string Operacion { get; set; } // LIT, LOD, STO, ADD, SUB, EQ, LT, GT, FJMP, JMP, LABEL, etc.
         public string Argumento1 { get; set; }
         public string Argumento2 { get; set; }
 
@@ -18,6 +26,7 @@ namespace AnalizadorLexico_LenguajeZAP
             Argumento1 = argumento1;
             Argumento2 = argumento2;
         }
+
 
         // Formato visual para las etiquetas (ej: "L1:")
         public override string ToString()
@@ -31,14 +40,18 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private static int contadorEtiquetas = 0;
 
+        public static void ReiniciarContadorEtiquetas()
+        {
+            contadorEtiquetas = 0;
+        }
+
         public static string ObtenerNuevaEtiqueta()
         {
-            contadorEtiquetas++;
             return $"L{contadorEtiquetas}";
         }
 
         // =====================================================================
-        // GENERADOR DE CÓDIGO P PARA EXPRESIONES Y CONDICIONES
+        // 1. TRADUCTOR DE EXPRESIONES (Aritméticas, Relacionales y Lógicas)
         // =====================================================================
         public static List<InstruccionP> GenerarCodigoExpresion(List<string> expTokens)
         {
@@ -78,7 +91,7 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         // =====================================================================
-        // GENERADOR DE CÓDIGO P PARA ASIGNACIONES
+        // 2. ASIGNACIÓN
         // =====================================================================
         public static List<InstruccionP> GenerarCodigoDinamico(string nombreVariable, List<string> expTokens)
         {
@@ -88,36 +101,223 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         // =====================================================================
-        // GENERADOR DE CÓDIGO P PARA CICLOS DO-WHILE (NUEVO)
+        // 3. ESTRUCTURA IF (Simple)
         // =====================================================================
-        public static List<InstruccionP> GenerarCodigoDoWhile(List<string> condTokens, List<InstruccionP> cuerpoInstrucciones)
+        public static List<InstruccionP> GenerarCodigoIf(List<string> condTokens, List<InstruccionP> cuerpoIf)
         {
-            List<InstruccionP> codigoDoWhile = new List<InstruccionP>();
+            contadorEtiquetas = 0;
+            List<InstruccionP> codigoIf = new List<InstruccionP>();
+            string etiquetaFin = ObtenerNuevaEtiqueta();
 
+            // 1. Evaluar condición
+            codigoIf.AddRange(GenerarCodigoExpresion(condTokens));
+
+            // 2. Si la condición es falsa, salta al final
+            codigoIf.Add(new InstruccionP("FJMP", etiquetaFin));
+
+            // 3. Instrucciones del cuerpo del if
+            codigoIf.AddRange(cuerpoIf);
+
+            // 4. Etiqueta de salida
+            codigoIf.Add(new InstruccionP("LABEL", etiquetaFin));
+
+            return codigoIf;
+        }
+
+        // =====================================================================
+        // 4. ESTRUCTURA IF-ELSE
+        // =====================================================================
+        public static List<InstruccionP> GenerarCodigoIfElse(List<string> condTokens, List<InstruccionP> cuerpoIf, List<InstruccionP> cuerpoElse)
+        {
+            List<InstruccionP> codigoIfElse = new List<InstruccionP>();
+            string etiquetaElse = ObtenerNuevaEtiqueta();
+            string etiquetaFin = ObtenerNuevaEtiqueta();
+
+            // 1. Evaluar condición
+            codigoIfElse.AddRange(GenerarCodigoExpresion(condTokens));
+
+            // 2. Si es falsa, salta al bloque else
+            codigoIfElse.Add(new InstruccionP("FJMP", etiquetaElse));
+
+            // 3. Cuerpo IF
+            codigoIfElse.AddRange(cuerpoIf);
+            codigoIfElse.Add(new InstruccionP("JMP", etiquetaFin)); // Salta al final para evitar el else
+
+            // 4. Bloque ELSE
+            codigoIfElse.Add(new InstruccionP("LABEL", etiquetaElse));
+            codigoIfElse.AddRange(cuerpoElse);
+
+            // 5. Fin
+            codigoIfElse.Add(new InstruccionP("LABEL", etiquetaFin));
+
+            return codigoIfElse;
+        }
+
+        // =====================================================================
+        // 5. CICLO WHILE
+        // =====================================================================
+        public static List<InstruccionP> GenerarCodigoWhile(List<string> condTokens, List<InstruccionP> cuerpoWhile)
+        {
+            List<InstruccionP> codigoWhile = new List<InstruccionP>();
             string etiquetaInicio = ObtenerNuevaEtiqueta();
             string etiquetaFin = ObtenerNuevaEtiqueta();
 
-            // 1. Etiqueta donde inicia el bloque do
+            // 1. Etiqueta de inicio de iteración
+            codigoWhile.Add(new InstruccionP("LABEL", etiquetaInicio));
+
+            // 2. Evaluar condición
+            codigoWhile.AddRange(GenerarCodigoExpresion(condTokens));
+
+            // 3. Si la condición es falsa, sale del ciclo
+            codigoWhile.Add(new InstruccionP("FJMP", etiquetaFin));
+
+            // 4. Cuerpo del while
+            codigoWhile.AddRange(cuerpoWhile);
+
+            // 5. Regresar al inicio a reevaluar
+            codigoWhile.Add(new InstruccionP("JMP", etiquetaInicio));
+
+            // 6. Fin del ciclo
+            codigoWhile.Add(new InstruccionP("LABEL", etiquetaFin));
+
+            return codigoWhile;
+        }
+
+        // =====================================================================
+        // 6. CICLO DO-WHILE
+        // =====================================================================
+        public static List<InstruccionP> GenerarCodigoDoWhile(List<string> condTokens, List<InstruccionP> cuerpoDoWhile)
+        {
+            List<InstruccionP> codigoDoWhile = new List<InstruccionP>();
+            string etiquetaInicio = ObtenerNuevaEtiqueta();
+            string etiquetaFin = ObtenerNuevaEtiqueta();
+
+            // 1. Etiqueta de inicio del do
             codigoDoWhile.Add(new InstruccionP("LABEL", etiquetaInicio));
 
-            // 2. Instrucciones que componen el cuerpo del ciclo (asignaciones internas)
-            codigoDoWhile.AddRange(cuerpoInstrucciones);
+            // 2. Cuerpo del do-while (se ejecuta al menos una vez)
+            codigoDoWhile.AddRange(cuerpoDoWhile);
 
-            // 3. Evaluar la condición del while(...) (ej: carga $C, carga 10, aplica GT)
+            // 3. Evaluar condición del while
             codigoDoWhile.AddRange(GenerarCodigoExpresion(condTokens));
 
-            // 4. Saltos de control: Si la condición es falsa (0), salta al fin. Si no, repite.
+            // 4. Si la condición es falsa, sale; si es verdadera, repite
             codigoDoWhile.Add(new InstruccionP("FJMP", etiquetaFin));
             codigoDoWhile.Add(new InstruccionP("JMP", etiquetaInicio));
 
-            // 5. Etiqueta de salida del ciclo
+            // 5. Fin del ciclo
             codigoDoWhile.Add(new InstruccionP("LABEL", etiquetaFin));
 
             return codigoDoWhile;
         }
 
         // =====================================================================
-        // PRECEDENCIA Y ALGORITMO SHUNTING-YARD
+        // 7. CICLO FOR
+        // =====================================================================
+        public static List<InstruccionP> GenerarCodigoFor(List<InstruccionP> initInsts, List<string> condTokens, List<InstruccionP> incInsts, List<InstruccionP> cuerpoFor)
+        {
+            List<InstruccionP> codigoFor = new List<InstruccionP>();
+            string etiquetaInicio = ObtenerNuevaEtiqueta();
+            string etiquetaFin = ObtenerNuevaEtiqueta();
+
+            // 1. Inicialización (ej: int $i = 0)
+            codigoFor.AddRange(initInsts);
+
+            // 2. Etiqueta de inicio de validación
+            codigoFor.Add(new InstruccionP("LABEL", etiquetaInicio));
+
+            // 3. Evaluar condición (ej: $i < 10)
+            codigoFor.AddRange(GenerarCodigoExpresion(condTokens));
+            codigoFor.Add(new InstruccionP("FJMP", etiquetaFin));
+
+            // 4. Cuerpo del for
+            codigoFor.AddRange(cuerpoFor);
+
+            // 5. Incremento o actualización (ej: $i = $i + 1)
+            codigoFor.AddRange(incInsts);
+
+            // 6. Regresar a evaluar la condición
+            codigoFor.Add(new InstruccionP("JMP", etiquetaInicio));
+
+            // 7. Fin del ciclo
+            codigoFor.Add(new InstruccionP("LABEL", etiquetaFin));
+
+            return codigoFor;
+        }
+
+        // =====================================================================
+        // GENERADOR DE CÓDIGO P PARA SWITCH-CASE-DEFAULT
+        // =====================================================================
+        public static List<InstruccionP> GenerarCodigoSwitch(List<string> exprTokens, List<SwitchCaseNode> casos)
+        {
+            List<InstruccionP> codigoSwitch = new List<InstruccionP>();
+            string etiquetaFin = ObtenerNuevaEtiqueta();
+
+            // Separar los casos normales (case X) del caso por defecto (default)
+            var casosNormales = casos.Where(c => c.ValorCaso != null).ToList();
+            var casoDefault = casos.FirstOrDefault(c => c.ValorCaso == null);
+
+            // Asignar etiquetas secuenciales para los cuerpos de cada caso
+            List<string> etiquetasCuerpo = new List<string>();
+            for (int i = 0; i < casosNormales.Count; i++)
+            {
+                etiquetasCuerpo.Add(ObtenerNuevaEtiqueta());
+            }
+
+            // Si hay default, se le asigna su etiqueta; si no, apunta directo al fin
+            string etiquetaDefaultCuerpo = casoDefault != null ? ObtenerNuevaEtiqueta() : etiquetaFin;
+
+            // 1. Bloque de Evaluaciones (Comparaciones secuenciales)
+            for (int i = 0; i < casosNormales.Count; i++)
+            {
+                codigoSwitch.AddRange(GenerarCodigoExpresion(exprTokens));
+                codigoSwitch.Add(new InstruccionP("LIT", casosNormales[i].ValorCaso));
+                codigoSwitch.Add(new InstruccionP("NE")); // Compara: si son distintos da 1, si son iguales da 0
+                codigoSwitch.Add(new InstruccionP("FJMP", etiquetasCuerpo[i])); // Si da 0 (son iguales), salta al cuerpo del caso
+            }
+
+            // Si ningún case coincidió, saltar al default (o al fin si no hay default)
+            if (casoDefault != null)
+            {
+                codigoSwitch.Add(new InstruccionP("JMP", etiquetaDefaultCuerpo));
+            }
+            else
+            {
+                codigoSwitch.Add(new InstruccionP("JMP", etiquetaFin));
+            }
+
+            // 2. Cuerpos de los casos normales (case)
+            for (int i = 0; i < casosNormales.Count; i++)
+            {
+                codigoSwitch.Add(new InstruccionP("LABEL", etiquetasCuerpo[i]));
+                codigoSwitch.AddRange(casosNormales[i].Instrucciones);
+
+                if (casosNormales[i].TieneBreak)
+                {
+                    codigoSwitch.Add(new InstruccionP("JMP", etiquetaFin));
+                }
+            }
+
+            // 3. Cuerpo del caso por defecto (default)
+            if (casoDefault != null)
+            {
+                codigoSwitch.Add(new InstruccionP("LABEL", etiquetaDefaultCuerpo));
+                codigoSwitch.AddRange(casoDefault.Instrucciones);
+
+                if (casoDefault.TieneBreak)
+                {
+                    codigoSwitch.Add(new InstruccionP("JMP", etiquetaFin));
+                }
+            }
+
+            // 4. Etiqueta de salida general
+            codigoSwitch.Add(new InstruccionP("LABEL", etiquetaFin));
+
+            return codigoSwitch;
+        }
+
+        // =====================================================================
+        // PRECEDENCIA Y SHUNTING-YARD
         // =====================================================================
         private static int ObtenerPrecedencia(string operador)
         {
