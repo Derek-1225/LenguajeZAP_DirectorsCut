@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
+    public class ResultadoCompilacion
+    {
+        public string ResultadoCuadruplo { get; set; }
+        public string ResultadoTriplo { get; set; }
+    }
+
     public static class CompiladorExpresiones
     {
         private static int contadorTemporales = 1;
@@ -15,7 +21,8 @@ namespace AnalizadorLexico_LenguajeZAP
             contadorTemporales = 1;
         }
 
-        public static string Compilar(
+        // Mantenemos el nombre original "Compilar" y la nueva lógica separada
+        public static ResultadoCompilacion Compilar(
             List<string> tokensInfijos,
             List<Cuadruplo> cuadruplos,
             List<Triplo> triplos,
@@ -23,11 +30,18 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             List<string> postfija = TraductorNotaciones.InfijaAPostfija(tokensInfijos);
 
-            // Pila separada para Cuádruplos/TAC (maneja temporales: t1, t2...)
             Stack<string> pilaCuadruplos = new Stack<string>();
-
-            // Pila separada para Triplos (maneja referencias por índice: (0), (1)...)
             Stack<string> pilaTriplos = new Stack<string>();
+
+            // Si la expresión es un solo valor (ej: "10" o "$SU"), no genera operaciones intermedias
+            if (postfija.Count == 1)
+            {
+                return new ResultadoCompilacion
+                {
+                    ResultadoCuadruplo = postfija[0],
+                    ResultadoTriplo = postfija[0]
+                };
+            }
 
             foreach (var token in postfija)
             {
@@ -40,7 +54,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 {
                     if (pilaCuadruplos.Count < 2 || pilaTriplos.Count < 2) continue;
 
-                    // --- 1. PROCESAMIENTO PARA CUÁDRUPLOS Y TAC ---
+                    // --- 1. Cuádruplos y TAC (Usan temporales t1, t2...) ---
                     string arg2Cuad = pilaCuadruplos.Pop();
                     string arg1Cuad = pilaCuadruplos.Pop();
                     string tempCuad = $"t{contadorTemporales++}";
@@ -49,23 +63,22 @@ namespace AnalizadorLexico_LenguajeZAP
                     tac.Add($"{tempCuad} = {arg1Cuad} {token} {arg2Cuad}");
                     pilaCuadruplos.Push(tempCuad);
 
-                    // --- 2. PROCESAMIENTO PARA TRIPLOS (Referencias por índice) ---
+                    // --- 2. Triplos (Usan referencias de índice numérico, ej. (0), (1)...) ---
                     string arg2Trip = pilaTriplos.Pop();
                     string arg1Trip = pilaTriplos.Pop();
 
-                    // El índice del triplo que vamos a crear a continuación
                     int indiceActual = triplos.Count;
-
                     triplos.Add(new Triplo(token, arg1Trip, arg2Trip));
-
-                    // Apuntamos a la posición en formato de paréntesis, ej: "(2)"
-                    string referenciaTriplo = $"({indiceActual})";
-                    pilaTriplos.Push(referenciaTriplo);
+                    string refTriplo = $"({indiceActual})";
+                    pilaTriplos.Push(refTriplo);
                 }
             }
 
-            // Retornamos el resultado final para el operador de asignación (=)
-            return pilaCuadruplos.Count > 0 ? pilaCuadruplos.Pop() : "";
+            return new ResultadoCompilacion
+            {
+                ResultadoCuadruplo = pilaCuadruplos.Count > 0 ? pilaCuadruplos.Pop() : "",
+                ResultadoTriplo = pilaTriplos.Count > 0 ? pilaTriplos.Pop() : ""
+            };
         }
 
         private static bool EsOperando(string t)

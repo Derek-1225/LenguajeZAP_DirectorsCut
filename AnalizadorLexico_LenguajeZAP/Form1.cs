@@ -2027,23 +2027,22 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     if (expTokens.Count > 0)
                     {
-                        // 1. Generar código intermedio para la expresión (TAC, Cuádruplos y Triplos)
-                        string resultadoExprCuad = CompiladorExpresiones.Compilar(expTokens, cuadruplosGlobales, triplosGlobales, tacGlobales);
+                        // Compilar la expresión obteniendo por separado el resultado para Cuádruplos y para Triplos
+                        var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplosGlobales, triplosGlobales, tacGlobales);
 
-                        // Cuádruplo usa el temporal (ej: t3)
-                        cuadruplosGlobales.Add(new Cuadruplo("=", resultadoExprCuad, "-", varName));
+                        // 1. Agregar Cuádruplo de asignación
+                        cuadruplosGlobales.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
 
-                        // Triplo de asignación usa el índice del último triplo generado (ej: (4))
-                        string referenciaUltimoTriplo = $"({triplosGlobales.Count})";
-                        triplosGlobales.Add(new Triplo("=", varName, referenciaUltimoTriplo));
+                        // 2. Agregar TAC de asignación
+                        tacGlobales.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
 
-                        tacGlobales.Add($"{varName} = {resultadoExprCuad}");
+                        // 3. Agregar Triplo de asignación de manera limpia
+                        // Si fue una asignación simple (ej: 10), Arg2 será "10". Si fue compleja, apuntará al último índice (ej: "(4)").
+                        triplosGlobales.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
 
-                        // 2. Construir la expresión completa (Identificador + Operador + Expresión) para las Notaciones
+                        // Registrar para Notaciones
                         List<string> tokensAsignacionCompleta = new List<string> { varName, "=" };
                         tokensAsignacionCompleta.AddRange(expTokens);
-
-                        // Registrar para que aparezca completo en Infija, Postfija y Prefija
                         RegistrarNotaciones(tokensAsignacionCompleta, lineasInfijas, lineasPostfijas, lineasPrefijas);
                     }
                     continue;
@@ -2169,12 +2168,12 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     if (expTokens.Count > 0)
                     {
-                        string resultadoExpr = CompiladorExpresiones.Compilar(expTokens, cuadruplos, triplos, tac);
+                        var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplos, triplos, tac);
 
                         // Instrucción de asignación final (=, resultadoExpr, -, varName)
-                        cuadruplos.Add(new Cuadruplo("=", resultadoExpr, "-", varName));
-                        triplos.Add(new Triplo("=", varName, resultadoExpr));
-                        tac.Add($"{varName} = {resultadoExpr}");
+                        cuadruplos.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
+                        triplos.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
+                        tac.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
                     }
                     continue;
                 }
@@ -2196,7 +2195,8 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
 
                     string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
-                    string condRes = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    var resCondIf = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    string condRes = resCondIf.ResultadoCuadruplo;
 
                     // Salto si falso al fin o al else
                     tac.Add($"ifFalse {condRes} goto {etiquetaFin}");
@@ -2218,7 +2218,8 @@ namespace AnalizadorLexico_LenguajeZAP
                     string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
 
                     tac.Add($"{etiquetaInicio}:");
-                    string condRes = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    var resCondWhile = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    string condRes = resCondWhile.ResultadoCuadruplo;
                     tac.Add($"ifFalse {condRes} goto {etiquetaFin}");
 
                     while (index < tokens.Count && tokens[index].Lexema != "{") index++;
