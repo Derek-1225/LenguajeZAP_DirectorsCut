@@ -1543,7 +1543,6 @@ namespace AnalizadorLexico_LenguajeZAP
         }
 
         // Analizador de bloques y estructuras de control recursivo/iterativo
-        // Analizador de bloques y estructuras de control recursivo/iterativo robusto
         private List<InstruccionP> ProcesarBloqueTokens(ref int index, List<(string Token, string Lexema, int Linea)> tokens)
         {
             List<InstruccionP> bloque = new List<InstruccionP>();
@@ -1555,6 +1554,11 @@ namespace AnalizadorLexico_LenguajeZAP
                 // Omitir llaves de cierre, marcas de fin o saltos de línea sueltos
                 if (actual.Lexema == "}" || actual.Lexema.ToLower() == "end" || actual.Lexema == "\n")
                 {
+                    if (actual.Lexema == "}")
+                    {
+                        index++;
+                        return bloque; // <-- CORRECCIÓN CRUCIAL: Retorna el bloque al cerrar la llave para salir del ámbito actual
+                    }
                     index++;
                     continue;
                 }
@@ -1599,7 +1603,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     var instsWhile = InstruccionP.GenerarCodigoWhile(condTokens, cuerpoWhile);
                     bloque.AddRange(instsWhile);
                 }
-                // 3. IF / IF-ELSE (Mejorado para tolerar espacios, saltos de línea y anidamientos)
+                // 3. IF / IF-ELSE (Con detección robusta de ELSE y soporte para else{ pegado)
                 else if (lexemaMin == "if")
                 {
                     index++; // pasar 'if'
@@ -1613,33 +1617,45 @@ namespace AnalizadorLexico_LenguajeZAP
                         cuerpoIf = ProcesarBloqueTokens(ref index, tokens);
                     }
 
-                    // Buscar la palabra 'else' de forma tolerante (saltando espacios/saltos de línea)
+                    // Búsqueda anticipada tolerante a espacios y saltos de línea para el 'else'
+                    int lookAhead = index;
+                    while (lookAhead < tokens.Count)
+                    {
+                        string lex = tokens[lookAhead].Lexema?.ToLower() ?? "";
+                        if (lex == "" || lex == "\n" || lex == "\r" || lex == " ")
+                        {
+                            lookAhead++;
+                            continue;
+                        }
+                        break;
+                    }
+
                     bool tieneElse = false;
                     int elseIndex = -1;
-                    for (int k = index; k < tokens.Count; k++)
+                    if (lookAhead < tokens.Count)
                     {
-                        string lex = tokens[k].Lexema.ToLower();
-                        if (lex == "else")
+                        string lex = tokens[lookAhead].Lexema?.ToLower() ?? "";
+                        if (lex == "else" || lex.StartsWith("else"))
                         {
                             tieneElse = true;
-                            elseIndex = k;
-                            break;
-                        }
-                        // Si encontramos un token que rompa la continuidad estructural antes de un else, paramos
-                        if (lex != "}" && lex != "\n" && lex != " " && !string.IsNullOrEmpty(lex) && lex != ";")
-                        {
-                            break;
+                            elseIndex = lookAhead;
                         }
                     }
 
                     if (tieneElse)
                     {
                         index = elseIndex + 1; // pasar 'else'
-                        while (index < tokens.Count && tokens[index].Lexema != "{") index++;
-                        List<InstruccionP> cuerpoElse = new List<InstruccionP>();
-                        if (index < tokens.Count && tokens[index].Lexema == "{")
+                        bool llaveElseIncluida = tokens[elseIndex].Lexema.ToLower().Contains("{");
+
+                        if (!llaveElseIncluida)
                         {
-                            index++;
+                            while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                        }
+
+                        List<InstruccionP> cuerpoElse = new List<InstruccionP>();
+                        if (index < tokens.Count && (tokens[index].Lexema == "{" || llaveElseIncluida))
+                        {
+                            if (!llaveElseIncluida) index++;
                             cuerpoElse = ProcesarBloqueTokens(ref index, tokens);
                         }
 
@@ -1652,7 +1668,7 @@ namespace AnalizadorLexico_LenguajeZAP
                         bloque.AddRange(instsIf);
                     }
                 }
-                //Switch
+                // SWITCH
                 else if (lexemaMin == "switch")
                 {
                     index++; // pasar 'switch'
@@ -1662,7 +1678,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (index < tokens.Count && tokens[index].Lexema == "{")
                     {
                         index++; // pasar '{'
-                
+
                         List<SwitchCaseNode> listaCasos = new List<SwitchCaseNode>();
                         SwitchCaseNode casoActual = null;
 
@@ -1673,7 +1689,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             if (lex == "case")
                             {
                                 if (casoActual != null) listaCasos.Add(casoActual);
-                        
+
                                 index++; // pasar 'case'
                                 string valCaso = tokens[index].Lexema; // Valor del caso
                                 index++;
@@ -1684,7 +1700,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             else if (lex == "default")
                             {
                                 if (casoActual != null) listaCasos.Add(casoActual);
-                        
+
                                 index++; // pasar 'default'
                                 if (tokens[index].Lexema == ":") index++;
 
@@ -1714,7 +1730,7 @@ namespace AnalizadorLexico_LenguajeZAP
                             }
                             else
                             {
-                                index++; // Omitir tokens vacíos o no reconocidos temporalmente
+                                index++;
                             }
                         }
                         if (casoActual != null) listaCasos.Add(casoActual);
@@ -1724,7 +1740,6 @@ namespace AnalizadorLexico_LenguajeZAP
                         bloque.AddRange(instsSwitch);
                     }
                 }
-
                 // 4. FOR
                 else if (lexemaMin == "for")
                 {
@@ -1773,7 +1788,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     var instsFor = InstruccionP.GenerarCodigoFor(initInsts, condTokens, incInsts, cuerpoFor);
                     bloque.AddRange(instsFor);
                 }
-                // 5. PRINT (Para que no se ignore dentro de los bloques o estructuras)
+                // 5. PRINT
                 else if (lexemaMin == "print")
                 {
                     index++; // pasar 'print'
@@ -1787,7 +1802,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     bloque.Add(new InstruccionP("PRN", string.Join(" ", printTokens)));
                 }
-                // 6. INPUT (Para que no se ignore)
+                // 6. INPUT
                 else if (lexemaMin == "input")
                 {
                     index++; // pasar 'input'
@@ -1991,103 +2006,23 @@ namespace AnalizadorLexico_LenguajeZAP
             List<Triplo> triplosGlobales = new List<Triplo>();
             List<string> tacGlobales = new List<string>();
 
-            // Listas para acumular las expresiones limpias para las notaciones
             List<string> lineasInfijas = new List<string>();
             List<string> lineasPostfijas = new List<string>();
             List<string> lineasPrefijas = new List<string>();
 
             int index = 0;
-            List<string> tokensCompletos = listaTokensCompletos.Select(t => t.Lexema).ToList();
 
-            // 2. Recorrido inteligente del código fuente
-            while (index < listaTokensCompletos.Count)
-            {
-                var actual = listaTokensCompletos[index];
-                string lexemaMin = actual.Lexema.ToLower();
-
-                // Omitir llaves, marcas de fin o saltos de línea
-                if (actual.Lexema == "}" || lexemaMin == "end" || actual.Lexema == "\n" || actual.Lexema == ";")
-                {
-                    index++;
-                    continue;
-                }
-
-                // Detección de Asignaciones
-                if (actual.Lexema == "=" || actual.Token == "OPASIG" || (index + 1 < listaTokensCompletos.Count && listaTokensCompletos[index + 1].Lexema == "="))
-                {
-                    int idxAsig = (actual.Lexema == "=" || actual.Token == "OPASIG") ? index : index + 1;
-                    string varName = listaTokensCompletos[idxAsig - 1].Lexema;
-
-                    List<string> expTokens = new List<string>();
-                    index = idxAsig + 1;
-                    while (index < listaTokensCompletos.Count && listaTokensCompletos[index].Lexema != ";" && listaTokensCompletos[index].Lexema != ",")
-                    {
-                        expTokens.Add(listaTokensCompletos[index].Lexema);
-                        index++;
-                    }
-
-                    if (expTokens.Count > 0)
-                    {
-                        // Compilar la expresión obteniendo por separado el resultado para Cuádruplos y para Triplos
-                        var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplosGlobales, triplosGlobales, tacGlobales);
-
-                        // 1. Agregar Cuádruplo de asignación
-                        cuadruplosGlobales.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
-
-                        // 2. Agregar TAC de asignación
-                        tacGlobales.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
-
-                        // 3. Agregar Triplo de asignación de manera limpia
-                        // Si fue una asignación simple (ej: 10), Arg2 será "10". Si fue compleja, apuntará al último índice (ej: "(4)").
-                        triplosGlobales.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
-
-                        // Registrar para Notaciones
-                        List<string> tokensAsignacionCompleta = new List<string> { varName, "=" };
-                        tokensAsignacionCompleta.AddRange(expTokens);
-                        RegistrarNotaciones(tokensAsignacionCompleta, lineasInfijas, lineasPostfijas, lineasPrefijas);
-                    }
-                    continue;
-                }
-                // B. DETECTAR CONDICIONALES Y CICLOS (if, while, for) para extraer sus expresiones de condición
-                else if (lexemaMin == "if" || lexemaMin == "while" || lexemaMin == "for")
-                {
-                    index++; // pasar la palabra clave
-                    List<string> tokensParentesis = ExtraerTokensParentesis(ref index, listaTokensCompletos);
-
-                    if (tokensParentesis.Count > 0)
-                    {
-                        // Si es un 'for', viene separado por comas o puntos y comas (ej: $i = 1 ; $i < 5 ; $i ++)
-                        // Vamos a extraer y compilar cada sub-expresión relacional o aritmética válida
-                        List<string> subExpresion = new List<string>();
-                        foreach (var t in tokensParentesis)
-                        {
-                            if (t == ";" || t == ",")
-                            {
-                                if (subExpresion.Count > 0 && ContieneOperador(subExpresion))
-                                {
-                                    CompiladorExpresiones.Compilar(subExpresion, cuadruplosGlobales, triplosGlobales, tacGlobales);
-                                    RegistrarNotaciones(subExpresion, lineasInfijas, lineasPostfijas, lineasPrefijas);
-                                }
-                                subExpresion.Clear();
-                            }
-                            else
-                            {
-                                subExpresion.Add(t);
-                            }
-                        }
-                        // Procesar la última subexpresión si quedó pendiente
-                        if (subExpresion.Count > 0 && ContieneOperador(subExpresion))
-                        {
-                            CompiladorExpresiones.Compilar(subExpresion, cuadruplosGlobales, triplosGlobales, tacGlobales);
-                            RegistrarNotaciones(subExpresion, lineasInfijas, lineasPostfijas, lineasPrefijas);
-                        }
-                    }
-                }
-                else
-                {
-                    index++;
-                }
-            }
+            // 2. MOTOR RECURSIVO: Procesar todo el código fuente de inicio a fin
+            ProcesarBloqueDinamico(
+                ref index,
+                listaTokensCompletos,
+                cuadruplosGlobales,
+                triplosGlobales,
+                tacGlobales,
+                lineasInfijas,
+                lineasPostfijas,
+                lineasPrefijas
+            );
 
             // =====================================================================
             // 3. LLENAR CONTROLES VISUALES EN LA INTERFAZ
@@ -2110,26 +2045,10 @@ namespace AnalizadorLexico_LenguajeZAP
             // C. Poblar TAC en su RichTextBox
             rtCodigoTAC.Text = string.Join(Environment.NewLine, tacGlobales);
 
-            // D. Poblar Notaciones divididas limpiamente por líneas en cada RichTextBox
+            // D. Poblar Notaciones
             if (rtNotacionInfija != null) rtNotacionInfija.Text = string.Join(Environment.NewLine, lineasInfijas);
             if (rtNotacionPostfija != null) rtNotacionPostfija.Text = string.Join(Environment.NewLine, lineasPostfijas);
             if (rtNotacionPrefija != null) rtNotacionPrefija.Text = string.Join(Environment.NewLine, lineasPrefijas);
-        }
-
-        // Métodos auxiliares de apoyo:
-        private void RegistrarNotaciones(List<string> expTokens, List<string> infija, List<string> postfija, List<string> prefija)
-        {
-            var post = TraductorNotaciones.InfijaAPostfija(expTokens);
-            var pre = TraductorNotaciones.InfijaAPrefija(expTokens);
-
-            infija.Add(string.Join(" ", expTokens));
-            postfija.Add(string.Join(" ", post));
-            prefija.Add(string.Join(" ", pre));
-        }
-
-        private bool ContieneOperador(List<string> tokens)
-        {
-            return tokens.Any(t => t == "+" || t == "-" || t == "*" || t == "/" || t == ">" || t == "<" || t == "==" || t == "!=" || t == ">=" || t == "<=");
         }
 
         // Método recursivo principal para procesar estructuras de control dinámicamente
@@ -2138,19 +2057,26 @@ namespace AnalizadorLexico_LenguajeZAP
             List<(string Token, string Lexema, int Linea)> tokens,
             List<Cuadruplo> cuadruplos,
             List<Triplo> triplos,
-            List<string> tac)
+            List<string> tac,
+            List<string> infija,
+            List<string> postfija,
+            List<string> prefija)
         {
             while (index < tokens.Count)
             {
                 var actual = tokens[index];
+                string lexemaMin = actual.Lexema.ToLower();
 
-                if (actual.Lexema == "}" || actual.Lexema.ToLower() == "end" || actual.Lexema == "\n")
+                if (actual.Lexema == "}" || lexemaMin == "end" || actual.Lexema == "\n" || actual.Lexema == ";")
                 {
+                    if (actual.Lexema == "}")
+                    {
+                        index++;
+                        return; // Salir del bloque actual al encontrar la llave de cierre
+                    }
                     index++;
                     continue;
                 }
-
-                string lexemaMin = actual.Lexema.ToLower();
 
                 // 1. ASIGNACIÓN O DECLARACIÓN CON ASIGNACIÓN
                 if (actual.Lexema == "=" || actual.Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
@@ -2171,69 +2097,17 @@ namespace AnalizadorLexico_LenguajeZAP
                     {
                         var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplos, triplos, tac);
 
-                        // Instrucción de asignación final (=, resultadoExpr, -, varName)
                         cuadruplos.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
                         triplos.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
                         tac.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
+
+                        List<string> tokensAsignacionCompleta = new List<string> { varName, "=" };
+                        tokensAsignacionCompleta.AddRange(expTokens);
+                        RegistrarNotacionesEx(tokensAsignacionCompleta, infija, postfija, prefija);
                     }
                     continue;
                 }
-                // 2. IF / IF-ELSE
-                else if (lexemaMin == "if")
-                {
-                    index++; // pasar 'if'
-                    List<string> condTokens = ExtraerTokensParentesis(ref index, tokens);
-
-                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
-                    List<Cuadruplo> cuerpoIfCuad = new List<Cuadruplo>();
-                    List<Triplo> cuerpoIfTrip = new List<Triplo>();
-                    List<string> cuerpoIfTac = new List<string>();
-
-                    if (index < tokens.Count && tokens[index].Lexema == "{")
-                    {
-                        index++;
-                        ProcesarBloqueDinamico(ref index, tokens, cuerpoIfCuad, cuerpoIfTrip, cuerpoIfTac);
-                    }
-
-                    string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
-                    var resCondIf = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
-                    string condRes = resCondIf.ResultadoCuadruplo;
-
-                    // Salto si falso al fin o al else
-                    tac.Add($"ifFalse {condRes} goto {etiquetaFin}");
-
-                    // Agregar el cuerpo del if a las listas principales
-                    cuadruplos.AddRange(cuerpoIfCuad);
-                    triplos.AddRange(cuerpoIfTrip);
-                    tac.AddRange(cuerpoIfTac);
-
-                    tac.Add($"{etiquetaFin}:");
-                }
-                // 3. WHILE
-                else if (lexemaMin == "while")
-                {
-                    index++;
-                    List<string> condTokens = ExtraerTokensParentesis(ref index, tokens);
-
-                    string etiquetaInicio = InstruccionP.ObtenerNuevaEtiqueta();
-                    string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
-
-                    tac.Add($"{etiquetaInicio}:");
-                    var resCondWhile = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
-                    string condRes = resCondWhile.ResultadoCuadruplo;
-                    tac.Add($"ifFalse {condRes} goto {etiquetaFin}");
-
-                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
-                    if (index < tokens.Count && tokens[index].Lexema == "{")
-                    {
-                        index++;
-                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac);
-                    }
-
-                    tac.Add($"goto {etiquetaInicio}");
-                    tac.Add($"{etiquetaFin}:");
-                }
-                // 4. PRINT
+                // 2. PRINT / EXPRESIONES DE SALIDA
                 else if (lexemaMin == "print")
                 {
                     index++;
@@ -2249,12 +2123,430 @@ namespace AnalizadorLexico_LenguajeZAP
                     cuadruplos.Add(new Cuadruplo("PRINT", contenido, "-", "-"));
                     triplos.Add(new Triplo("PRINT", contenido, "-"));
                     tac.Add($"print {contenido}");
+                    continue;
+                }
+                // 3. IF / IF-ELSE (Con detección robusta de ELSE)
+                else if (lexemaMin == "if")
+                {
+                    index++;
+                    List<string> condTokens = ExtraerTokensParentesis(ref index, tokens);
+                    RegistrarNotacionesEx(condTokens, infija, postfija, prefija);
+
+                    var resCond = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    string condRes = resCond.ResultadoCuadruplo;
+
+                    string etiquetaFalsa = InstruccionP.ObtenerNuevaEtiqueta(); // Salto al else (L0)
+                    string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();   // Salto para rodear el else (L1)
+
+                    tac.Add($"ifFalse {condRes} goto {etiquetaFalsa}");
+                    cuadruplos.Add(new Cuadruplo("ifFalse", condRes, "-", etiquetaFalsa));
+                    triplos.Add(new Triplo("ifFalse", condRes, etiquetaFalsa));
+
+                    // Procesar el cuerpo del IF hasta encontrar la llave de apertura '{'
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                    }
+
+                    // Búsqueda anticipada (Lookahead) ignorando saltos de línea, espacios o comentarios
+                    int lookAhead = index;
+                    while (lookAhead < tokens.Count)
+                    {
+                        string tLex = tokens[lookAhead].Lexema?.Trim().ToLower() ?? "";
+                        string tTok = tokens[lookAhead].Token?.ToUpper() ?? "";
+
+                        if (tLex == "" || tLex == "\n" || tLex == "\r" || tLex == "\r\n" ||
+                            tTok.Contains("ESPACIO") || tTok.Contains("COMENTARIO") || tTok.Contains("NL") || tTok.Contains("WHITESPACE"))
+                        {
+                            lookAhead++;
+                            continue;
+                        }
+                        break;
+                    }
+
+                    bool tieneElse = false;
+                    bool llaveYaIncluida = false;
+
+                    if (lookAhead < tokens.Count)
+                    {
+                        string lexL = tokens[lookAhead].Lexema?.Trim().ToLower() ?? "";
+                        if (lexL == "else")
+                        {
+                            tieneElse = true;
+                            index = lookAhead + 1;
+                        }
+                        else if (lexL.StartsWith("else") || lexL == "else{")
+                        {
+                            tieneElse = true;
+                            llaveYaIncluida = true;
+                            index = lookAhead + 1;
+                        }
+                    }
+
+                    if (tieneElse)
+                    {
+                        // 1. Salto incondicional al final (para saltar el else si el if fue verdadero)
+                        tac.Add($"goto {etiquetaFin}");
+                        cuadruplos.Add(new Cuadruplo("JUMP", etiquetaFin, "-", "-"));
+                        triplos.Add(new Triplo("JUMP", etiquetaFin, "-"));
+
+                        // 2. Colocar la etiqueta falsa (aquí inicia el bloque del else)
+                        tac.Add($"{etiquetaFalsa}:");
+                        cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFalsa, "-", "-"));
+                        triplos.Add(new Triplo("LABEL", etiquetaFalsa, "-"));
+
+                        // Buscar la llave de apertura del else si no venía pegada
+                        if (!llaveYaIncluida)
+                        {
+                            while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                        }
+
+                        if (index < tokens.Count && (tokens[index].Lexema == "{" || llaveYaIncluida))
+                        {
+                            if (!llaveYaIncluida) index++;
+                            ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                        }
+
+                        // 3. Colocar la etiqueta final al terminar el else
+                        tac.Add($"{etiquetaFin}:");
+                        cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFin, "-", "-"));
+                        triplos.Add(new Triplo("LABEL", etiquetaFin, "-"));
+                    }
+                    else
+                    {
+                        // Si es un if simple sin else, la etiqueta falsa marca el final
+                        tac.Add($"{etiquetaFalsa}:");
+                        cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFalsa, "-", "-"));
+                        triplos.Add(new Triplo("LABEL", etiquetaFalsa, "-"));
+                    }
+                    continue;
+                }
+                // 4. WHILE
+                else if (lexemaMin == "while")
+                {
+                    index++;
+                    List<string> condTokens = ExtraerTokensParentesis(ref index, tokens);
+                    RegistrarNotacionesEx(condTokens, infija, postfija, prefija);
+
+                    string etiquetaInicio = InstruccionP.ObtenerNuevaEtiqueta();
+                    string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
+
+                    tac.Add($"{etiquetaInicio}:");
+                    cuadruplos.Add(new Cuadruplo("LABEL", etiquetaInicio, "-", "-"));
+                    triplos.Add(new Triplo("LABEL", etiquetaInicio, "-"));
+
+                    var resCond = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                    string condRes = resCond.ResultadoCuadruplo;
+
+                    tac.Add($"ifFalse {condRes} goto {etiquetaFin}");
+                    cuadruplos.Add(new Cuadruplo("ifFalse", condRes, "-", etiquetaFin));
+                    triplos.Add(new Triplo("ifFalse", condRes, etiquetaFin));
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                    }
+
+                    tac.Add($"goto {etiquetaInicio}");
+                    cuadruplos.Add(new Cuadruplo("JUMP", etiquetaInicio, "-", "-"));
+                    triplos.Add(new Triplo("JUMP", etiquetaInicio, "-"));
+
+                    tac.Add($"{etiquetaFin}:");
+                    cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFin, "-", "-"));
+                    triplos.Add(new Triplo("LABEL", etiquetaFin, "-"));
+                    continue;
+                }
+                // 5. DO-WHILE
+                else if (lexemaMin == "do")
+                {
+                    index++;
+                    string etiquetaInicio = InstruccionP.ObtenerNuevaEtiqueta();
+
+                    tac.Add($"{etiquetaInicio}:");
+                    cuadruplos.Add(new Cuadruplo("LABEL", etiquetaInicio, "-", "-"));
+                    triplos.Add(new Triplo("LABEL", etiquetaInicio, "-"));
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                    }
+
+                    while (index < tokens.Count && tokens[index].Lexema.ToLower() != "while") index++;
+                    if (index < tokens.Count && tokens[index].Lexema.ToLower() == "while")
+                    {
+                        index++;
+                        List<string> condTokens = ExtraerTokensParentesis(ref index, tokens);
+                        RegistrarNotacionesEx(condTokens, infija, postfija, prefija);
+
+                        var resCond = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                        string condRes = resCond.ResultadoCuadruplo;
+
+                        tac.Add($"ifTrue {condRes} goto {etiquetaInicio}");
+                        cuadruplos.Add(new Cuadruplo("ifTrue", condRes, "-", etiquetaInicio));
+                        triplos.Add(new Triplo("ifTrue", condRes, etiquetaInicio));
+                    }
+                    if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+                    continue;
+                }
+                // 6. FOR
+                else if (lexemaMin == "for")
+                {
+                    index++;
+                    List<string> forTokens = ExtraerTokensParentesis(ref index, tokens);
+
+                    List<string> initTokens = new List<string>();
+                    List<string> condTokens = new List<string>();
+                    List<string> incTokens = new List<string>();
+
+                    int parte = 0;
+                    foreach (var t in forTokens)
+                    {
+                        if (t == ";") { parte++; continue; }
+                        if (parte == 0) initTokens.Add(t);
+                        else if (parte == 1) condTokens.Add(t);
+                        else if (parte == 2) incTokens.Add(t);
+                    }
+
+                    if (initTokens.Count > 0)
+                    {
+                        var resInit = CompiladorExpresiones.Compilar(initTokens.Skip(2).ToList(), cuadruplos, triplos, tac);
+                        string varI = initTokens[1];
+                        cuadruplos.Add(new Cuadruplo("=", resInit.ResultadoCuadruplo, "-", varI));
+                        triplos.Add(new Triplo("=", varI, resInit.ResultadoTriplo));
+                        tac.Add($"{varI} = {resInit.ResultadoCuadruplo}");
+                    }
+
+                    string etiquetaInicio = InstruccionP.ObtenerNuevaEtiqueta();
+                    string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
+
+                    tac.Add($"{etiquetaInicio}:");
+                    cuadruplos.Add(new Cuadruplo("LABEL", etiquetaInicio, "-", "-"));
+                    triplos.Add(new Triplo("LABEL", etiquetaInicio, "-"));
+
+                    if (condTokens.Count > 0)
+                    {
+                        var resCond = CompiladorExpresiones.Compilar(condTokens, cuadruplos, triplos, tac);
+                        RegistrarNotacionesEx(condTokens, infija, postfija, prefija);
+
+                        tac.Add($"ifFalse {resCond.ResultadoCuadruplo} goto {etiquetaFin}");
+                        cuadruplos.Add(new Cuadruplo("ifFalse", resCond.ResultadoCuadruplo, "-", etiquetaFin));
+                        triplos.Add(new Triplo("ifFalse", resCond.ResultadoCuadruplo, etiquetaFin));
+                    }
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                    }
+
+                    // CORRECCIÓN DEL INCREMENTO (Soporta $i = $i + 1 y asignaciones)
+                    if (incTokens.Count > 0)
+                    {
+                        int idxAsigInc = incTokens.IndexOf("=");
+                        if (idxAsigInc != -1 && idxAsigInc > 0)
+                        {
+                            string varNameInc = incTokens[idxAsigInc - 1];
+                            List<string> exprInc = incTokens.Skip(idxAsigInc + 1).ToList();
+
+                            var resInc = CompiladorExpresiones.Compilar(exprInc, cuadruplos, triplos, tac);
+                            cuadruplos.Add(new Cuadruplo("=", resInc.ResultadoCuadruplo, "-", varNameInc));
+                            triplos.Add(new Triplo("=", varNameInc, resInc.ResultadoTriplo));
+                            tac.Add($"{varNameInc} = {resInc.ResultadoCuadruplo}");
+
+                            // Versión limpia y directa sin errores de variables ni RemoveRange innecesarios
+                            List<string> tokensIncCompleta = new List<string> { varNameInc, "=" };
+                            tokensIncCompleta.AddRange(exprInc);
+                            RegistrarNotacionesEx(tokensIncCompleta, infija, postfija, prefija);
+                        }
+                        else
+                        {
+                            CompiladorExpresiones.Compilar(incTokens, cuadruplos, triplos, tac);
+                            RegistrarNotacionesEx(incTokens, infija, postfija, prefija);
+                        }
+                    }
+
+                    tac.Add($"goto {etiquetaInicio}");
+                    cuadruplos.Add(new Cuadruplo("JUMP", etiquetaInicio, "-", "-"));
+                    triplos.Add(new Triplo("JUMP", etiquetaInicio, "-"));
+
+                    tac.Add($"{etiquetaFin}:");
+                    cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFin, "-", "-"));
+                    triplos.Add(new Triplo("LABEL", etiquetaFin, "-"));
+                    continue;
+                }
+                // 7. SWITCH
+                else if (lexemaMin == "switch")
+                {
+                    index++;
+                    List<string> exprTokens = ExtraerTokensParentesis(ref index, tokens);
+                    RegistrarNotacionesEx(exprTokens, infija, postfija, prefija);
+
+                    var resExpr = CompiladorExpresiones.Compilar(exprTokens, cuadruplos, triplos, tac);
+                    string exprRes = resExpr.ResultadoCuadruplo;
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++; // Saltar '{'
+
+                        string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
+                        string etiquetaDefault = null;
+
+                        // Estructuras temporales para diferir la escritura hasta armar la secuencia lógica
+                        List<(string ValorCaso, string EtiquetaCuerpo, bool TieneBreak, List<string> ContenidoPrint)> casos = new List<(string, string, bool, List<string>)>();
+
+                        string valActual = null;
+                        List<string> printsActuales = new List<string>();
+                        bool breakActual = false;
+                        bool esDefault = false;
+
+                        while (index < tokens.Count && tokens[index].Lexema != "}")
+                        {
+                            string lex = tokens[index].Lexema.ToLower();
+
+                            if (lex == "case")
+                            {
+                                if (valActual != null || esDefault)
+                                {
+                                    string etq = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
+                                    casos.Add((valActual, etq, breakActual, printsActuales));
+                                    printsActuales = new List<string>();
+                                    breakActual = false;
+                                }
+                                esDefault = false;
+                                index++;
+
+                                List<string> tokensVal = new List<string>();
+                                while (index < tokens.Count && tokens[index].Lexema != ":" && tokens[index].Lexema != "{")
+                                {
+                                    tokensVal.Add(tokens[index].Lexema);
+                                    index++;
+                                }
+                                valActual = string.Join(" ", tokensVal);
+                                RegistrarNotacionesEx(tokensVal, infija, postfija, prefija);
+
+                                if (index < tokens.Count && tokens[index].Lexema == ":") index++;
+                            }
+                            else if (lex == "default")
+                            {
+                                if (valActual != null || esDefault)
+                                {
+                                    string etq = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
+                                    casos.Add((valActual, etq, breakActual, printsActuales));
+                                    printsActuales = new List<string>();
+                                    breakActual = false;
+                                }
+                                valActual = null;
+                                esDefault = true;
+                                etiquetaDefault = InstruccionP.ObtenerNuevaEtiqueta();
+                                index++;
+                                if (index < tokens.Count && tokens[index].Lexema == ":") index++;
+                            }
+                            else if (lex == "break")
+                            {
+                                breakActual = true;
+                                index++;
+                                if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+                            }
+                            else if (lex == "print")
+                            {
+                                index++;
+                                List<string> printTokens = new List<string>();
+                                while (index < tokens.Count && tokens[index].Lexema != ";")
+                                {
+                                    printTokens.Add(tokens[index].Lexema);
+                                    index++;
+                                }
+                                if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                                string contenido = string.Join(" ", printTokens);
+                                printsActuales.Add(contenido);
+                            }
+                            else
+                            {
+                                index++;
+                            }
+                        }
+
+                        // Guardar el último caso del switch
+                        if (valActual != null || esDefault)
+                        {
+                            string etqFinal = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
+                            casos.Add((valActual, etqFinal, breakActual, printsActuales));
+                        }
+
+                        if (index < tokens.Count && tokens[index].Lexema == "}") index++; // Saltar '}'
+
+                        // 1. GENERAR PRIMERO LAS COMPARACIONES Y LOS SALTOS
+                        foreach (var c in casos)
+                        {
+                            if (c.ValorCaso != null)
+                            {
+                                var resCmp = CompiladorExpresiones.Compilar(new List<string> { exprRes, "==", c.ValorCaso }, cuadruplos, triplos, tac);
+                                tac.Add($"ifTrue {resCmp.ResultadoCuadruplo} goto {c.EtiquetaCuerpo}");
+                                cuadruplos.Add(new Cuadruplo("ifTrue", resCmp.ResultadoCuadruplo, "-", c.EtiquetaCuerpo));
+                                triplos.Add(new Triplo("ifTrue", resCmp.ResultadoCuadruplo, c.EtiquetaCuerpo));
+                            }
+                        }
+
+                        // Salto hacia el default si ninguna comparación fue verdadera, o fin directamente
+                        string saltoDestino = etiquetaDefault ?? etiquetaFin;
+                        tac.Add($"goto {saltoDestino}");
+                        cuadruplos.Add(new Cuadruplo("JUMP", saltoDestino, "-", "-"));
+                        triplos.Add(new Triplo("JUMP", saltoDestino, "-"));
+
+                        // 2. GENERAR AHORA LOS BLOQUES DE CADA CASO CON SUS ETIQUETAS E IMPRESIONES CORRESPONDIENTES
+                        foreach (var c in casos)
+                        {
+                            tac.Add($"{c.EtiquetaCuerpo}:");
+                            cuadruplos.Add(new Cuadruplo("LABEL", c.EtiquetaCuerpo, "-", "-"));
+                            triplos.Add(new Triplo("LABEL", c.EtiquetaCuerpo, "-"));
+
+                            foreach (var p in c.ContenidoPrint)
+                            {
+                                cuadruplos.Add(new Cuadruplo("PRINT", p, "-", "-"));
+                                triplos.Add(new Triplo("PRINT", p, "-"));
+                                tac.Add($"print {p}");
+                            }
+
+                            if (c.TieneBreak)
+                            {
+                                tac.Add($"goto {etiquetaFin}");
+                                cuadruplos.Add(new Cuadruplo("JUMP", etiquetaFin, "-", "-"));
+                                triplos.Add(new Triplo("JUMP", etiquetaFin, "-"));
+                            }
+                        }
+
+                        tac.Add($"{etiquetaFin}:");
+                        cuadruplos.Add(new Cuadruplo("LABEL", etiquetaFin, "-", "-"));
+                        triplos.Add(new Triplo("LABEL", etiquetaFin, "-"));
+                    }
+                    continue;
                 }
                 else
                 {
                     index++;
                 }
             }
+        }
+
+        // Método auxiliar seguro para notaciones
+        private void RegistrarNotacionesEx(List<string> expTokens, List<string> infija, List<string> postfija, List<string> prefija)
+        {
+            if (expTokens == null || expTokens.Count == 0) return;
+            var post = TraductorNotaciones.InfijaAPostfija(expTokens);
+            var pre = TraductorNotaciones.InfijaAPrefija(expTokens);
+
+            infija.Add(string.Join(" ", expTokens));
+            postfija.Add(string.Join(" ", post));
+            prefija.Add(string.Join(" ", pre));
         }
 
 

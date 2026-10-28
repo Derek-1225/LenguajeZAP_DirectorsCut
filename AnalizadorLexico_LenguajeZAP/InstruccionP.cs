@@ -41,13 +41,13 @@ namespace AnalizadorLexico_LenguajeZAP
         private static int contadorEtiquetas = 0;
 
         public static void ReiniciarContadorEtiquetas()
-        {
+        {       
             contadorEtiquetas = 0;
         }
 
         public static string ObtenerNuevaEtiqueta()
         {
-            return $"L{contadorEtiquetas}";
+            return $"L{contadorEtiquetas++}";
         }
 
         // =====================================================================
@@ -105,7 +105,7 @@ namespace AnalizadorLexico_LenguajeZAP
         // =====================================================================
         public static List<InstruccionP> GenerarCodigoIf(List<string> condTokens, List<InstruccionP> cuerpoIf)
         {
-            contadorEtiquetas = 0;
+            // El contador ya se reinicia al inicio global de la compilación, no aquí.
             List<InstruccionP> codigoIf = new List<InstruccionP>();
             string etiquetaFin = ObtenerNuevaEtiqueta();
 
