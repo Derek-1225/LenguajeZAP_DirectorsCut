@@ -25,7 +25,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR18", new List<string> { "PR18", "OP-","OP>","ID", "CS15" } },
                 { "PR22", new List<string> { "PR22", "ARG_PRINT", "CS15" } },
                 { "PR16", new List<string> { "PR16", "CS20", "CONDIC", "CS21", "CS24", "BODY", "CS25", "ELSE_OPT" } },
-                { "PR29", new List<string> { "PR29", "CS20", "ID", "CS21", "CS24", "SW", "SW2", "SW3" } },
+                { "PR29", new List<string> { "PR29", "CS20", "ID", "CS21", "CS24", "SW", "CS25" } },
                 { "PR10", new List<string> { "PR10", "CS20", "CONDIC", "CS21", "CS24", "BODY", "CS25" } },
                 { "PR09", new List<string> { "PR09", "CS24", "BODY", "CS25", "DW" } },
                 { "PR14", new List<string> { "PR14", "CS20", "ID", "OPASIG", "ARGF", "CS13", "CONDIC", "CS13", "ID", "OPAF", "CS21", "CS24", "BODY", "CS25" } },
@@ -197,8 +197,8 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "CS21", new List<string>() }, { "CS13", new List<string>() }
             }},
             { "SW", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
-                { "PR30", new List<string> { "PR30", "ARGSW", "CS14", "BODY", "PR31", "CS15" } },
-                { "PR32", new List<string>() },
+                { "PR30", new List<string> { "PR30", "ARGSW", "CS14", "BODY", "PR31", "CS15", "SW" } },
+                { "PR32", new List<string> { "PR32", "CS14", "BODY", "PR31", "CS15" } },
                 { "CS25", new List<string>() }
             }},
             { "SW2", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {

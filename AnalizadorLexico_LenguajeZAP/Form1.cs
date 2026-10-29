@@ -904,6 +904,117 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
+                if (lexemaMin == "switch")
+                {
+                    HashSet<string> casosRegistrados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    int nivelLlavesSwitch = 0;
+                    bool dentroDeSwitch = false;
+
+                    // 1. Obtener el tipo de dato de la expresión evaluada en el switch (ej. switch ($a))
+                    string tipoExpresionSwitch = "";
+                    int idxParenOpen = i + 1;
+                    while (idxParenOpen < listaTokensCompletos.Count && listaTokensCompletos[idxParenOpen].Lexema != "(") idxParenOpen++;
+
+                    if (idxParenOpen < listaTokensCompletos.Count)
+                    {
+                        List<string> tokensSwitchExpr = new List<string>();
+                        int pCount = 0;
+                        for (int p = idxParenOpen; p < listaTokensCompletos.Count; p++)
+                        {
+                            if (listaTokensCompletos[p].Lexema == "(") pCount++;
+                            else if (listaTokensCompletos[p].Lexema == ")")
+                            {
+                                pCount--;
+                                if (pCount == 0) break;
+                            }
+                            else if (pCount > 0)
+                            {
+                                tokensSwitchExpr.Add(listaTokensCompletos[p].Lexema);
+                            }
+                        }
+
+                        if (tokensSwitchExpr.Count > 0)
+                        {
+                            string exprTokenUnico = tokensSwitchExpr[0];
+                            if (exprTokenUnico.StartsWith("$") || tablaSimbolos.ContainsKey(exprTokenUnico))
+                            {
+                                tipoExpresionSwitch = ObtenerTipoVariable(exprTokenUnico);
+                            }
+                            else
+                            {
+                                tipoExpresionSwitch = ObtenerTipoOperando(exprTokenUnico, "");
+                            }
+                        }
+                    }
+
+                    // 2. Recorrer el bloque interno del switch para validar tipos y duplicados
+                    for (int j = i; j < listaTokensCompletos.Count; j++)
+                    {
+                        var tokenActualSwitch = listaTokensCompletos[j];
+
+                        if (tokenActualSwitch.Lexema == "{")
+                        {
+                            nivelLlavesSwitch++;
+                            dentroDeSwitch = true;
+                        }
+                        else if (tokenActualSwitch.Lexema == "}")
+                        {
+                            nivelLlavesSwitch--;
+                            if (nivelLlavesSwitch == 0 && dentroDeSwitch)
+                            {
+                                break; // Fin del bloque switch actual
+                            }
+                        }
+                        else if (tokenActualSwitch.Lexema.ToLower() == "case" && j + 1 < listaTokensCompletos.Count)
+                        {
+                            var tokenValorCase = listaTokensCompletos[j + 1];
+                            string valorCase = tokenValorCase.Lexema;
+                            string tokenTipoCase = tokenValorCase.Token;
+
+                            // Determinar el tipo del valor del case actual
+                            string tipoCaseDetectado = "";
+                            if (tokenTipoCase == "CONENTERO" || int.TryParse(valorCase, out _))
+                                tipoCaseDetectado = "int";
+                            else if (tokenTipoCase == "CONDEC" || double.TryParse(valorCase, out _))
+                                tipoCaseDetectado = "float";
+                            else if (tokenTipoCase == "CAD" || valorCase.StartsWith("\""))
+                                tipoCaseDetectado = "string";
+                            else if (valorCase.StartsWith("$"))
+                                tipoCaseDetectado = ObtenerTipoVariable(valorCase);
+
+                            // Validar compatibilidad de tipos entre el switch y el case
+                            if (!string.IsNullOrEmpty(tipoExpresionSwitch) && !string.IsNullOrEmpty(tipoCaseDetectado))
+                            {
+                                // Normalizar tipos equivalentes (ej: pr19 o int)
+                                string tipoSwitchNorm = NormalizarTipo(tipoExpresionSwitch, "");
+                                string tipoCaseNorm = NormalizarTipo(tipoCaseDetectado, "");
+
+                                if (tipoSwitchNorm == "int" && (tipoCaseNorm == "string" || tipoCaseNorm == "float"))
+                                {
+                                    ImprimirErrorSemantico(tokenActualSwitch.Linea, $"Error Semántico: No se puede convertir un valor de tipo '{tipoCaseNorm}' al tipo '{tipoSwitchNorm}' en el case '{valorCase}'.");
+                                    erroresSemanticos++;
+                                }
+                                else if (tipoSwitchNorm == "string" && tipoCaseNorm != "string")
+                                {
+                                    ImprimirErrorSemantico(tokenActualSwitch.Linea, $"Error Semántico: El case '{valorCase}' no coincide con el tipo 'string' de la expresión del switch.");
+                                    erroresSemanticos++;
+                                }
+                            }
+
+                            // Validar casos duplicados
+                            if (casosRegistrados.Contains(valorCase))
+                            {
+                                ImprimirErrorSemantico(tokenActualSwitch.Linea, $"Error Semántico: El valor de caso '{valorCase}' está duplicado en la instrucción switch.");
+                                erroresSemanticos++;
+                            }
+                            else
+                            {
+                                casosRegistrados.Add(valorCase);
+                            }
+                        }
+                    }
+                }
+
                 if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion && !esVariableEnDeclaracion)
                 {
                     bool estaEnAlcance = false;
