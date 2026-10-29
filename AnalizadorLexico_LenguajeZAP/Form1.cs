@@ -43,6 +43,18 @@ namespace AnalizadorLexico_LenguajeZAP
         private int offsetGlobal = 0;
         private int offsetLocal = 0;
 
+        // Variables y controles para zoom dinámico en el editor de código
+        private float _tamanoFuenteCodigo = 10.5f;
+        private const float TAMANO_MIN_FUENTE = 7.0f;
+        private const float TAMANO_MAX_FUENTE = 36.0f;
+        private const float TAMANO_DEFAULT_FUENTE = 10.5f;
+
+        private Panel panelZoomControls;
+        private Label lblZoomLevel;
+        private Button btnZoomIn;
+        private Button btnZoomOut;
+        private Button btnZoomReset;
+
         //Metodo Auxiliar para mostrar el numero de linea en editor de codigo
         public void ConfigurarNumeracion()
         {
@@ -157,6 +169,7 @@ namespace AnalizadorLexico_LenguajeZAP
             ConfigurarNumeracion();
             ConfigurarEstilosVisuales();
             InicializarColumnasGrids();
+            ConfigurarZoom();
         }
 
         // Método para definir las columnas de ambos DataGridView
@@ -254,6 +267,189 @@ namespace AnalizadorLexico_LenguajeZAP
             }
         }
 
+        #region Configuración de Zoom del Editor de Código
+
+        private void ConfigurarZoom()
+        {
+            if (rTxtCodigoFuente != null)
+            {
+                _tamanoFuenteCodigo = rTxtCodigoFuente.Font.Size;
+                rTxtCodigoFuente.MouseWheel += RTxtCodigoFuente_MouseWheel;
+            }
+            if (rTxtNumeros != null)
+            {
+                rTxtNumeros.MouseWheel += RTxtCodigoFuente_MouseWheel;
+            }
+
+            CrearControlesVisualesZoom();
+        }
+
+        private void CrearControlesVisualesZoom()
+        {
+            if (panelCodigoHeader == null) return;
+
+            panelZoomControls = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 205,
+                Height = 34,
+                BackColor = Color.Transparent
+            };
+
+            Label lblZoomTitulo = new Label
+            {
+                Text = "Zoom:",
+                ForeColor = Color.FromArgb(148, 163, 184),
+                Font = new Font("Segoe UI", 8.25F, FontStyle.Regular),
+                AutoSize = false,
+                Width = 44,
+                Height = 26,
+                Top = 4,
+                Left = 0,
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            btnZoomOut = new Button
+            {
+                Text = "−",
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(51, 65, 85),
+                FlatStyle = FlatStyle.Flat,
+                Width = 28,
+                Height = 24,
+                Top = 5,
+                Left = 48,
+                Cursor = Cursors.Hand
+            };
+            btnZoomOut.FlatAppearance.BorderSize = 0;
+            btnZoomOut.Click += (s, e) => CambiarZoomCodigo(-1.0f);
+
+            lblZoomLevel = new Label
+            {
+                Text = "100%",
+                Font = new Font("Segoe UI Semibold", 8.5F),
+                ForeColor = Color.FromArgb(226, 232, 240),
+                BackColor = Color.FromArgb(30, 41, 59),
+                BorderStyle = BorderStyle.FixedSingle,
+                AutoSize = false,
+                Width = 50,
+                Height = 24,
+                Top = 5,
+                Left = 80,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand
+            };
+            lblZoomLevel.Click += (s, e) => RestablecerZoomCodigo();
+
+            btnZoomIn = new Button
+            {
+                Text = "+",
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(51, 65, 85),
+                FlatStyle = FlatStyle.Flat,
+                Width = 28,
+                Height = 24,
+                Top = 5,
+                Left = 134,
+                Cursor = Cursors.Hand
+            };
+            btnZoomIn.FlatAppearance.BorderSize = 0;
+            btnZoomIn.Click += (s, e) => CambiarZoomCodigo(1.0f);
+
+            btnZoomReset = new Button
+            {
+                Text = "↺",
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(148, 163, 184),
+                BackColor = Color.FromArgb(51, 65, 85),
+                FlatStyle = FlatStyle.Flat,
+                Width = 24,
+                Height = 24,
+                Top = 5,
+                Left = 166,
+                Cursor = Cursors.Hand
+            };
+            btnZoomReset.FlatAppearance.BorderSize = 0;
+            btnZoomReset.Click += (s, e) => RestablecerZoomCodigo();
+
+            ToolTip tip = new ToolTip();
+            tip.SetToolTip(btnZoomOut, "Disminuir tamaño de letra (Ctrl - o Ctrl + Rueda abajo)");
+            tip.SetToolTip(lblZoomLevel, "Restablecer al 100% (Ctrl 0)");
+            tip.SetToolTip(btnZoomIn, "Aumentar tamaño de letra (Ctrl + o Ctrl + Rueda arriba)");
+            tip.SetToolTip(btnZoomReset, "Restablecer tamaño predeterminado (Ctrl 0)");
+
+            panelZoomControls.Controls.Add(lblZoomTitulo);
+            panelZoomControls.Controls.Add(btnZoomOut);
+            panelZoomControls.Controls.Add(lblZoomLevel);
+            panelZoomControls.Controls.Add(btnZoomIn);
+            panelZoomControls.Controls.Add(btnZoomReset);
+
+            if (lblCodigoHeaderTip != null)
+            {
+                lblCodigoHeaderTip.Text = "✦ Ctrl+V: pegar | F5: Compilar | Zoom: Ctrl+Rueda o Ctrl+/-";
+            }
+
+            panelCodigoHeader.Controls.Add(panelZoomControls);
+            panelZoomControls.BringToFront();
+        }
+
+        public void CambiarZoomCodigo(float delta)
+        {
+            float nuevoTamano = _tamanoFuenteCodigo + delta;
+            if (nuevoTamano < TAMANO_MIN_FUENTE) nuevoTamano = TAMANO_MIN_FUENTE;
+            if (nuevoTamano > TAMANO_MAX_FUENTE) nuevoTamano = TAMANO_MAX_FUENTE;
+
+            AplicarTamanoFuenteCodigo(nuevoTamano);
+        }
+
+        public void RestablecerZoomCodigo()
+        {
+            AplicarTamanoFuenteCodigo(TAMANO_DEFAULT_FUENTE);
+        }
+
+        public void AplicarTamanoFuenteCodigo(float nuevoTamano)
+        {
+            _tamanoFuenteCodigo = (float)Math.Round(nuevoTamano, 1);
+            Font nuevaFuente = new Font("Consolas", _tamanoFuenteCodigo, FontStyle.Regular);
+
+            rTxtCodigoFuente.Font = nuevaFuente;
+            rTxtNumeros.Font = nuevaFuente;
+
+            Size size = TextRenderer.MeasureText("9999", nuevaFuente);
+            int anchoDeseado = Math.Max(52, size.Width + 14);
+            rTxtNumeros.Width = anchoDeseado;
+
+            if (this.IsHandleCreated)
+            {
+                ActualizarNumerosLinea(null, null);
+            }
+
+            if (lblZoomLevel != null)
+            {
+                int porcentaje = (int)Math.Round((_tamanoFuenteCodigo / TAMANO_DEFAULT_FUENTE) * 100);
+                lblZoomLevel.Text = $"{porcentaje}%";
+            }
+        }
+
+        private void RTxtCodigoFuente_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
+            {
+                if (e.Delta > 0)
+                {
+                    CambiarZoomCodigo(1.0f);
+                }
+                else if (e.Delta < 0)
+                {
+                    CambiarZoomCodigo(-1.0f);
+                }
+                ((HandledMouseEventArgs)e).Handled = true;
+            }
+        }
+
+        #endregion
 
         //Evento del boton para analizar el codigo fuente
         private void btnAnalizarCodigo_Click(object sender, EventArgs e)
@@ -334,7 +530,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 rTxtCodigoFuente.SelectedText = texto;
                 rTxtCodigoFuente.Select(inicio, texto.Length);
-                rTxtCodigoFuente.SelectionFont = new Font("Consolas", 10.2f);
+                rTxtCodigoFuente.SelectionFont = new Font("Consolas", _tamanoFuenteCodigo);
                 rTxtCodigoFuente.SelectionStart = inicio + texto.Length;
                 rTxtCodigoFuente.SelectionLength = 0;
             }
@@ -351,6 +547,21 @@ namespace AnalizadorLexico_LenguajeZAP
             if (keyData == Keys.F5)
             {
                 btnAnalizarCodigo_Click(btnAnalizarCodigo, EventArgs.Empty);
+                return true;
+            }
+            if (keyData == (Keys.Control | Keys.Oemplus) || keyData == (Keys.Control | Keys.Add) || keyData == (Keys.Control | Keys.Shift | Keys.Oemplus))
+            {
+                CambiarZoomCodigo(1.0f);
+                return true;
+            }
+            if (keyData == (Keys.Control | Keys.OemMinus) || keyData == (Keys.Control | Keys.Subtract))
+            {
+                CambiarZoomCodigo(-1.0f);
+                return true;
+            }
+            if (keyData == (Keys.Control | Keys.D0) || keyData == (Keys.Control | Keys.NumPad0))
+            {
+                RestablecerZoomCodigo();
                 return true;
             }
             return base.ProcessCmdKey(ref msg, keyData);
@@ -852,17 +1063,19 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
 
                 string lexemaMin = actual.Lexema.ToLower();
-                bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PR11" ||
-                                     lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "string" ||
-                                     lexemaMin == "char" || lexemaMin == "bool";
+                bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PRO2" ||
+                                     actual.Token == "PR11" || actual.Token == "PR13" || actual.Token == "PR03" || actual.Token == "PRO3" ||
+                                     lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "double" ||
+                                     lexemaMin == "string" || lexemaMin == "char" || lexemaMin == "bool" || lexemaMin == "boolean";
 
                 bool esVariableEnDeclaracion = false;
                 if (i > 0)
                 {
                     var anterior = listaTokensCompletos[i - 1];
                     string antMin = anterior.Lexema.ToLower();
-                    if (anterior.Token == "PR19" || anterior.Token == "PR28" || anterior.Token == "PR02" || anterior.Token == "PR11" ||
-                        antMin == "int" || antMin == "float" || antMin == "string" || antMin == "char" || antMin == "bool")
+                    if (anterior.Token == "PR19" || anterior.Token == "PR28" || anterior.Token == "PR02" || anterior.Token == "PRO2" ||
+                        anterior.Token == "PR11" || anterior.Token == "PR13" || anterior.Token == "PR03" || anterior.Token == "PRO3" ||
+                        antMin == "int" || antMin == "float" || antMin == "double" || antMin == "string" || antMin == "char" || antMin == "bool" || antMin == "boolean")
                     {
                         esVariableEnDeclaracion = true;
                     }
@@ -877,29 +1090,54 @@ namespace AnalizadorLexico_LenguajeZAP
                         string idenLexema = siguiente.Lexema;
                         string tipoNormalizado = NormalizarTipo(actual.Lexema, actual.Token);
 
-                        tablaTiposVariables[siguiente.Token] = tipoNormalizado;
-                        ambitos.Peek().Add(idenLexema);
-
-                        if (tablaSimbolos.ContainsKey(idenLexema))
+                        // Detección de error por variables con el mismo nombre (redeclaración)
+                        bool yaDeclaradaMismoAmbito = ambitos.Peek().Contains(idenLexema);
+                        bool yaDeclaradaExterior = false;
+                        foreach (var scope in ambitos)
                         {
-                            Simbolo sim = tablaSimbolos[idenLexema];
-                            sim.TipoDato = tipoNormalizado;
-                            sim.Scope = (nivelBloque == 0) ? "Global" : "Local";
-
-                            int bytes = ObtenerTamanoBytes(tipoNormalizado);
-                            sim.Tamano = bytes;
-                            if (sim.Scope == "Global")
+                            if (scope.Contains(idenLexema))
                             {
-                                sim.Direccion = offsetGlobal;
-                                offsetGlobal += bytes;
+                                yaDeclaradaExterior = true;
+                                break;
                             }
-                            else
-                            {
-                                sim.Direccion = offsetLocal;
-                                offsetLocal += bytes;
-                            }
+                        }
 
-                            sim.EstaInicializada = true; 
+                        if (yaDeclaradaMismoAmbito)
+                        {
+                            ImprimirErrorSemantico(siguiente.Linea, $"Error Semántico: La variable '{idenLexema}' ya fue declarada previamente en este mismo ámbito.");
+                            erroresSemanticos++;
+                        }
+                        else if (yaDeclaradaExterior)
+                        {
+                            ImprimirErrorSemantico(siguiente.Linea, $"Error Semántico: La variable '{idenLexema}' ya fue declarada previamente en un ámbito exterior (no se permite duplicar nombres de variables).");
+                            erroresSemanticos++;
+                        }
+                        else
+                        {
+                            tablaTiposVariables[siguiente.Token] = tipoNormalizado;
+                            ambitos.Peek().Add(idenLexema);
+
+                            if (tablaSimbolos.ContainsKey(idenLexema))
+                            {
+                                Simbolo sim = tablaSimbolos[idenLexema];
+                                sim.TipoDato = tipoNormalizado;
+                                sim.Scope = (nivelBloque == 0) ? "Global" : "Local";
+
+                                int bytes = ObtenerTamanoBytes(tipoNormalizado);
+                                sim.Tamano = bytes;
+                                if (sim.Scope == "Global")
+                                {
+                                    sim.Direccion = offsetGlobal;
+                                    offsetGlobal += bytes;
+                                }
+                                else
+                                {
+                                    sim.Direccion = offsetLocal;
+                                    offsetLocal += bytes;
+                                }
+
+                                sim.EstaInicializada = true; 
+                            }
                         }
                     }
                 }
@@ -974,7 +1212,17 @@ namespace AnalizadorLexico_LenguajeZAP
                             // Determinar el tipo del valor del case actual
                             string tipoCaseDetectado = "";
                             if (tokenTipoCase == "CONENTERO" || int.TryParse(valorCase, out _))
+                            {
                                 tipoCaseDetectado = "int";
+                                if (tokenTipoCase == "CONENTERO")
+                                {
+                                    if (!ValidarRangoNumerico(valorCase, "int", out string msgOverflowCase))
+                                    {
+                                        ImprimirErrorSemantico(tokenActualSwitch.Linea, msgOverflowCase);
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
                             else if (tokenTipoCase == "CONDEC" || double.TryParse(valorCase, out _))
                                 tipoCaseDetectado = "float";
                             else if (tokenTipoCase == "CAD" || valorCase.StartsWith("\""))
@@ -1116,6 +1364,36 @@ namespace AnalizadorLexico_LenguajeZAP
                                     }
                                 }
                             }
+
+                            // Validación de desbordamiento (Overflow) en el resultado de expresiones compuestas evaluadas
+                            try
+                            {
+                                string exprParaEvaluar = string.Join(" ", expTokens.Select(x => x.Lexema));
+                                exprParaEvaluar = Regex.Replace(exprParaEvaluar, @"\$[a-zA-Z0-9_]+", m =>
+                                {
+                                    if (tablaSimbolos.ContainsKey(m.Value) && tablaSimbolos[m.Value].Valor != null)
+                                    {
+                                        string v = tablaSimbolos[m.Value].Valor.ToString();
+                                        if (double.TryParse(v, out _)) return v;
+                                    }
+                                    return m.Value;
+                                });
+
+                                if (Regex.IsMatch(exprParaEvaluar, @"^[0-9\.\s\+\-\*\/\(\)]+$"))
+                                {
+                                    DataTable dtCalc = new DataTable();
+                                    var calcResult = dtCalc.Compute(exprParaEvaluar, "");
+                                    if (calcResult != null && double.TryParse(calcResult.ToString(), out double resNum))
+                                    {
+                                        if (resNum < int.MinValue || resNum > int.MaxValue)
+                                        {
+                                            ImprimirErrorSemantico(actual.Linea, $"Error de Desbordamiento (Overflow): El resultado de la expresión ({resNum}) excede los límites permitidos para un entero de 32 bits [{int.MinValue} a {int.MaxValue}].");
+                                            erroresSemanticos++;
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
 
                             if (intInvalido)
                             {
@@ -1279,9 +1557,9 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             if (token == "PR19" || lexema == "int") return "int";
             if (token == "PR28" || lexema == "string") return "string";
-            if (token == "PR02" || lexema == "boolean" || lexema == "bool") return "boolean";
-            if (token == "PR11" || lexema == "float" || lexema == "double") return "float";
-            if (lexema == "char") return "char";
+            if (token == "PR02" || token == "PRO2" || lexema == "boolean" || lexema == "bool") return "boolean";
+            if (token == "PR11" || token == "PR13" || lexema == "float" || lexema == "double") return "float";
+            if (token == "PR03" || token == "PRO3" || lexema == "char") return "char";
             return lexema;
         }
 
@@ -1538,18 +1816,27 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             mensajeError = string.Empty;
 
-            if (tipoDato.Equals("int", StringComparison.OrdinalIgnoreCase))
+            if (tipoDato.Equals("int", StringComparison.OrdinalIgnoreCase) || tipoDato.Equals("pr19", StringComparison.OrdinalIgnoreCase))
             {
                 if (!long.TryParse(tokenValor, out long valorLong) || valorLong < int.MinValue || valorLong > int.MaxValue)
                 {
-                    
+                    mensajeError = $"Error de Desbordamiento (Overflow): El valor entero '{tokenValor}' excede los límites permitidos para un entero de 32 bits [{int.MinValue} a {int.MaxValue}].";
                     return false;
                 }
             }
-            else if (tipoDato.Equals("float", StringComparison.OrdinalIgnoreCase) || tipoDato.Equals("double", StringComparison.OrdinalIgnoreCase))
+            else if (tipoDato.Equals("float", StringComparison.OrdinalIgnoreCase) || tipoDato.Equals("pr11", StringComparison.OrdinalIgnoreCase) || tipoDato.Equals("pr13", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!float.TryParse(tokenValor, out float valorFloat) || float.IsInfinity(valorFloat))
+                {
+                    mensajeError = $"Error de Desbordamiento (Overflow): El valor numérico '{tokenValor}' excede los límites permitidos para un flotante de 32 bits.";
+                    return false;
+                }
+            }
+            else if (tipoDato.Equals("double", StringComparison.OrdinalIgnoreCase))
             {
                 if (!double.TryParse(tokenValor, out double valorDouble) || double.IsInfinity(valorDouble))
                 {
+                    mensajeError = $"Error de Desbordamiento (Overflow): El valor numérico '{tokenValor}' excede los límites permitidos para 'double'.";
                     return false;
                 }
             }
@@ -1833,6 +2120,26 @@ namespace AnalizadorLexico_LenguajeZAP
                                 if (casoActual != null)
                                 {
                                     casoActual.Instrucciones.Add(new InstruccionP("PRN", string.Join(" ", printTokens)));
+                                }
+                            }
+                            else if (tokens[index].Lexema == "=" || tokens[index].Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
+                            {
+                                int idxAsig = (tokens[index].Lexema == "=" || tokens[index].Token == "OPASIG") ? index : index + 1;
+                                string varName = tokens[idxAsig - 1].Lexema;
+
+                                List<string> asigTokens = new List<string>();
+                                index = idxAsig + 1;
+                                while (index < tokens.Count && tokens[index].Lexema != ";" && tokens[index].Lexema != "}")
+                                {
+                                    asigTokens.Add(tokens[index].Lexema);
+                                    index++;
+                                }
+                                if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                                if (asigTokens.Count > 0 && casoActual != null)
+                                {
+                                    var instsAsig = InstruccionP.GenerarCodigoDinamico(varName, asigTokens);
+                                    casoActual.Instrucciones.AddRange(instsAsig);
                                 }
                             }
                             else
@@ -2519,6 +2826,28 @@ namespace AnalizadorLexico_LenguajeZAP
 
                                 string contenido = string.Join(" ", printTokens);
                                 printsActuales.Add(contenido);
+                            }
+                            else if (tokens[index].Lexema == "=" || tokens[index].Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
+                            {
+                                int idxAsig = (tokens[index].Lexema == "=" || tokens[index].Token == "OPASIG") ? index : index + 1;
+                                string varName = tokens[idxAsig - 1].Lexema;
+
+                                List<string> expToks = new List<string>();
+                                index = idxAsig + 1;
+                                while (index < tokens.Count && tokens[index].Lexema != ";" && tokens[index].Lexema != ",")
+                                {
+                                    expToks.Add(tokens[index].Lexema);
+                                    index++;
+                                }
+                                if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                                if (expToks.Count > 0)
+                                {
+                                    var resComp = CompiladorExpresiones.Compilar(expToks, cuadruplos, triplos, tac);
+                                    cuadruplos.Add(new Cuadruplo("=", resComp.ResultadoCuadruplo, "-", varName));
+                                    triplos.Add(new Triplo("=", varName, resComp.ResultadoTriplo));
+                                    tac.Add($"{varName} = {resComp.ResultadoCuadruplo}");
+                                }
                             }
                             else
                             {
