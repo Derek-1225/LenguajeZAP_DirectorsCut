@@ -11,7 +11,6 @@ namespace AnalizadorLexico_LenguajeZAP
             var resultado = new List<InstruccionIntermedia>();
             var bloqueActual = new List<InstruccionIntermedia>();
 
-            // Particionar en bloques básicos delimitados por LABEL, JUMP, ifFalse, ifTrue
             foreach (var inst in codigo)
             {
                 if (inst.Operador == "LABEL")
@@ -45,14 +44,13 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             var tablaConstantes = new Dictionary<string, string>();
             var tablaCopias = new Dictionary<string, string>();
-            var subexpresiones = new Dictionary<string, string>(); // "op|arg1|arg2" -> temporal
+            var subexpresiones = new Dictionary<string, string>();
             var optimizado = new List<InstruccionIntermedia>();
 
             foreach (var inst in bloque)
             {
                 if (inst.Operador == "JUMP" || inst.Operador == "ifFalse" || inst.Operador == "ifTrue" || inst.Operador == "PRINT")
                 {
-                    // Propagar constantes/copias en argumentos de control o impresión
                     if (tablaConstantes.ContainsKey(inst.Arg1)) inst.Arg1 = tablaConstantes[inst.Arg1];
                     else if (tablaCopias.ContainsKey(inst.Arg1)) inst.Arg1 = tablaCopias[inst.Arg1];
 
@@ -60,17 +58,14 @@ namespace AnalizadorLexico_LenguajeZAP
                     continue;
                 }
 
-                // 1. Propagación de constantes y copias en Arg1 y Arg2
                 if (tablaConstantes.ContainsKey(inst.Arg1)) inst.Arg1 = tablaConstantes[inst.Arg1];
                 else if (tablaCopias.ContainsKey(inst.Arg1)) inst.Arg1 = tablaCopias[inst.Arg1];
 
                 if (tablaConstantes.ContainsKey(inst.Arg2)) inst.Arg2 = tablaConstantes[inst.Arg2];
                 else if (tablaCopias.ContainsKey(inst.Arg2)) inst.Arg2 = tablaCopias[inst.Arg2];
 
-                // 2. Reducción de potencia e identidades algebraicas
                 AplicarIdentidadesAlgebraicas(inst, bitacora);
 
-                // 3. Plegado de constantes (Constant Folding)
                 if (EsNumero(inst.Arg1, out double v1) && EsNumero(inst.Arg2, out double v2))
                 {
                     if (EvaluarOperacion(inst.Operador, v1, v2, out string resConst))
@@ -82,7 +77,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
-                // 4. Eliminación de subexpresiones comunes locales (CSE)
                 if (inst.Operador != "=" && inst.Arg2 != "-")
                 {
                     string firma = $"{inst.Operador}|{inst.Arg1}|{inst.Arg2}";
@@ -99,7 +93,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
-                // Invalidar entradas previas donde 'Resultado' participaba antes de ser sobrescrito
                 string destino = inst.Resultado;
                 tablaConstantes.Remove(destino);
                 tablaCopias.Remove(destino);
@@ -118,7 +111,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
                 foreach (var k in cseInvalidas) subexpresiones.Remove(k);
 
-                // Registrar nuevo estado si es asignación simple
                 if (inst.Operador == "=")
                 {
                     if (EsNumero(inst.Arg1, out _) || inst.Arg1.StartsWith("\""))
@@ -131,6 +123,159 @@ namespace AnalizadorLexico_LenguajeZAP
             }
 
             return optimizado;
+        }
+
+        public static List<InstruccionP> Optimizar(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var resultado = new List<InstruccionP>();
+            var bloqueActual = new List<InstruccionP>();
+
+            foreach (var inst in codigo)
+            {
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+                if (op == "LABEL")
+                {
+                    if (bloqueActual.Count > 0)
+                    {
+                        resultado.AddRange(OptimizarBloqueBasicoP(bloqueActual, bitacora));
+                        bloqueActual.Clear();
+                    }
+                    resultado.Add(new InstruccionP(inst.Operacion, inst.Argumento1, inst.Argumento2));
+                }
+                else if (op == "JMP" || op == "FJMP")
+                {
+                    bloqueActual.Add(new InstruccionP(inst.Operacion, inst.Argumento1, inst.Argumento2));
+                    resultado.AddRange(OptimizarBloqueBasicoP(bloqueActual, bitacora));
+                    bloqueActual.Clear();
+                }
+                else
+                {
+                    bloqueActual.Add(new InstruccionP(inst.Operacion, inst.Argumento1, inst.Argumento2));
+                }
+            }
+
+            if (bloqueActual.Count > 0)
+                resultado.AddRange(OptimizarBloqueBasicoP(bloqueActual, bitacora));
+
+            return resultado;
+        }
+
+        private static List<InstruccionP> OptimizarBloqueBasicoP(List<InstruccionP> bloque, List<string> bitacora)
+        {
+            var constantesVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var optimizado = new List<InstruccionP>();
+
+            for (int i = 0; i < bloque.Count; i++)
+            {
+                var actual = new InstruccionP(bloque[i].Operacion, bloque[i].Argumento1, bloque[i].Argumento2);
+                string opAct = (actual.Operacion ?? "").ToUpperInvariant();
+
+                if (opAct == "LOD" && constantesVariables.TryGetValue(actual.Argumento1, out string valConst))
+                {
+                    bitacora.Add($"[Local P - Propagación] LOD {actual.Argumento1} -> LIT {valConst}");
+                    actual = new InstruccionP("LIT", valConst);
+                    opAct = "LIT";
+                }
+
+                if (optimizado.Count >= 2 && EsOperacionBinariaP(opAct))
+                {
+                    var prev1 = optimizado[optimizado.Count - 1];
+                    var prev2 = optimizado[optimizado.Count - 2];
+
+                    if (prev2.Operacion.ToUpperInvariant() == "LIT" && prev1.Operacion.ToUpperInvariant() == "LIT" &&
+                        EsNumero(prev2.Argumento1, out double v1) && EsNumero(prev1.Argumento1, out double v2) &&
+                        EvaluarOperacionP(opAct, v1, v2, out string resConst))
+                    {
+                        bitacora.Add($"[Local P - Plegado] {prev2.Argumento1} {opAct} {prev1.Argumento1} -> {resConst}");
+                        optimizado.RemoveAt(optimizado.Count - 1);
+                        optimizado.RemoveAt(optimizado.Count - 1);
+                        optimizado.Add(new InstruccionP("LIT", resConst));
+                        continue;
+                    }
+
+                    if (prev1.Operacion.ToUpperInvariant() == "LIT" && EsNumero(prev1.Argumento1, out double k))
+                    {
+                        if ((opAct == "ADD" || opAct == "SUB") && Math.Abs(k) < 1e-9)
+                        {
+                            bitacora.Add($"[Local P - Identidad] {opAct} 0 eliminado");
+                            optimizado.RemoveAt(optimizado.Count - 1);
+                            continue;
+                        }
+                        if ((opAct == "MUL" || opAct == "DIV") && Math.Abs(k - 1.0) < 1e-9)
+                        {
+                            bitacora.Add($"[Local P - Identidad] {opAct} 1 eliminado");
+                            optimizado.RemoveAt(optimizado.Count - 1);
+                            continue;
+                        }
+                        if (opAct == "MUL" && Math.Abs(k) < 1e-9)
+                        {
+                            bitacora.Add("[Local P - Anulación] Producto por 0 -> LIT 0");
+                            optimizado.RemoveAt(optimizado.Count - 1);
+                            optimizado.RemoveAt(optimizado.Count - 1);
+                            optimizado.Add(new InstruccionP("LIT", "0"));
+                            continue;
+                        }
+                        if (opAct == "MUL" && Math.Abs(k - 2.0) < 1e-9 &&
+                            (prev2.Operacion.ToUpperInvariant() == "LOD" || prev2.Operacion.ToUpperInvariant() == "LIT"))
+                        {
+                            bitacora.Add("[Local P - Reducción Potencia] * 2 -> suma duplicada");
+                            optimizado.RemoveAt(optimizado.Count - 1);
+                            optimizado.Add(new InstruccionP(prev2.Operacion, prev2.Argumento1, prev2.Argumento2));
+                            optimizado.Add(new InstruccionP("ADD"));
+                            continue;
+                        }
+                    }
+                }
+
+                if (opAct == "STO" && !string.IsNullOrEmpty(actual.Argumento1))
+                {
+                    constantesVariables.Remove(actual.Argumento1);
+                    if (optimizado.Count > 0 && optimizado[optimizado.Count - 1].Operacion.ToUpperInvariant() == "LIT")
+                        constantesVariables[actual.Argumento1] = optimizado[optimizado.Count - 1].Argumento1;
+                }
+
+                optimizado.Add(actual);
+            }
+
+            return optimizado;
+        }
+
+        private static bool EsOperacionBinariaP(string op)
+        {
+            switch (op)
+            {
+                case "ADD":
+                case "SUB":
+                case "MUL":
+                case "DIV":
+                case "EQ":
+                case "NE":
+                case "LT":
+                case "GT":
+                case "LE":
+                case "GE":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool EvaluarOperacionP(string op, double a, double b, out string res)
+        {
+            switch (op)
+            {
+                case "ADD": return EvaluarOperacion("+", a, b, out res);
+                case "SUB": return EvaluarOperacion("-", a, b, out res);
+                case "MUL": return EvaluarOperacion("*", a, b, out res);
+                case "DIV": return EvaluarOperacion("/", a, b, out res);
+                case "GT": return EvaluarOperacion(">", a, b, out res);
+                case "LT": return EvaluarOperacion("<", a, b, out res);
+                case "GE": return EvaluarOperacion(">=", a, b, out res);
+                case "LE": return EvaluarOperacion("<=", a, b, out res);
+                case "EQ": return EvaluarOperacion("==", a, b, out res);
+                case "NE": return EvaluarOperacion("!=", a, b, out res);
+                default: res = ""; return false;
+            }
         }
 
         private static void AplicarIdentidadesAlgebraicas(InstruccionIntermedia inst, List<string> bitacora)

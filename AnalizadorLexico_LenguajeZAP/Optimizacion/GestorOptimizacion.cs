@@ -7,44 +7,70 @@ namespace AnalizadorLexico_LenguajeZAP
     public class ResultadoOptimizacion
     {
         public List<InstruccionIntermedia> CodigoOptimizado { get; set; }
+        public List<InstruccionP> CodigoPOptimizado { get; set; }
         public ReporteCostos CostoInicial { get; set; }
         public ReporteCostos CostoFinal { get; set; }
+        public ReporteCostos CostoPInicial { get; set; }
+        public ReporteCostos CostoPFinal { get; set; }
         public List<string> Bitacora { get; set; }
     }
 
     public static class GestorOptimizacion
     {
-        public static ResultadoOptimizacion EjecutarTodo(List<Cuadruplo> cuadruplosOriginales)
+        public static ResultadoOptimizacion EjecutarTodo(
+            List<Cuadruplo> cuadruplosOriginales,
+            IEnumerable<InstruccionP> codigoPOriginal = null)
         {
             var bitacora = new List<string>();
 
-            // Convertir tus Cuadruplos actuales al modelo unificado
             var codigo = cuadruplosOriginales
                 .Select(c => new InstruccionIntermedia(c.Operador, c.Arg1, c.Arg2, c.Resultado))
                 .ToList();
 
             var costoAntes = ReporteCostos.Evaluar(codigo);
 
-            // Pipeline iterativo de optimización (3.1.1 -> 3.1.2 -> 3.1.3 -> 3.1.4)
             codigo = OptimizadorLocal.Optimizar(codigo, bitacora);
             codigo = OptimizadorCiclos.Optimizar(codigo, bitacora);
             codigo = OptimizadorGlobal.Optimizar(codigo, bitacora);
-            codigo = OptimizadorLocal.Optimizar(codigo, bitacora);   // Segunda pasada tras propagar constantes/LICM
+            codigo = OptimizadorLocal.Optimizar(codigo, bitacora);
             codigo = OptimizadorMirilla.Optimizar(codigo, bitacora);
 
             var costoDespues = ReporteCostos.Evaluar(codigo);
             costoDespues.BitacoraCambios = bitacora;
 
+            List<InstruccionP> codigoPOpt = new List<InstruccionP>();
+            ReporteCostos costoPAntes = new ReporteCostos();
+            ReporteCostos costoPDespues = new ReporteCostos();
+
+            if (codigoPOriginal != null)
+            {
+                codigoPOpt = codigoPOriginal
+                    .Select(p => new InstruccionP(p.Operacion, p.Argumento1, p.Argumento2))
+                    .ToList();
+
+                costoPAntes = ReporteCostos.Evaluar(codigoPOpt);
+
+                codigoPOpt = OptimizadorLocal.Optimizar(codigoPOpt, bitacora);
+                codigoPOpt = OptimizadorCiclos.Optimizar(codigoPOpt, bitacora);
+                codigoPOpt = OptimizadorGlobal.Optimizar(codigoPOpt, bitacora);
+                codigoPOpt = OptimizadorLocal.Optimizar(codigoPOpt, bitacora);
+                codigoPOpt = OptimizadorMirilla.Optimizar(codigoPOpt, bitacora);
+
+                costoPDespues = ReporteCostos.Evaluar(codigoPOpt);
+            }
+
             return new ResultadoOptimizacion
             {
                 CodigoOptimizado = codigo,
+                CodigoPOptimizado = codigoPOpt,
                 CostoInicial = costoAntes,
                 CostoFinal = costoDespues,
+                CostoPInicial = costoPAntes,
+                CostoPFinal = costoPDespues,
                 Bitacora = bitacora
             };
         }
 
-        // Método auxiliar para volcar el resultado optimizado a tus grids de Cuádruplos, Triplos y TAC
         public static void AplicarATablas(
             List<InstruccionIntermedia> optimizado,
             out List<Cuadruplo> nuevosCuadruplos,

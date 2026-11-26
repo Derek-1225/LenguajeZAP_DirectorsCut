@@ -10,16 +10,9 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             var actual = codigo.Select(c => c.Clonar()).ToList();
 
-            // 1. Simplificación de saltos con condiciones constantes
             actual = SimplificarSaltosConstantes(actual, bitacora);
-
-            // 2. Eliminación de código inalcanzable después de JUMP
             actual = EliminarCodigoInalcanzable(actual, bitacora);
-
-            // 3. Eliminación de código muerto (temporales/asignaciones no utilizadas)
             actual = EliminarCodigoMuerto(actual, bitacora);
-
-            // 4. Eliminación de etiquetas huérfanas (nunca referenciadas por ningún salto)
             actual = EliminarEtiquetasHuerfanas(actual, bitacora);
 
             return actual;
@@ -101,7 +94,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 huboCambios = false;
                 var usados = new HashSet<string>();
 
-                // Recolectar todos los símbolos leídos en todo el programa
                 foreach (var inst in lista)
                 {
                     if (inst.Operador == "LABEL" || inst.Operador == "JUMP") continue;
@@ -112,7 +104,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 var filtrada = new List<InstruccionIntermedia>();
                 foreach (var inst in lista)
                 {
-                    // Eliminar temporales (t1, t2...) o asignaciones internas que nunca se leen
                     bool esTemporal = inst.Resultado.StartsWith("t") && int.TryParse(inst.Resultado.Substring(1), out _);
                     bool esOperacionPura = inst.Operador != "LABEL" && inst.Operador != "JUMP" &&
                                            inst.Operador != "ifFalse" && inst.Operador != "ifTrue" &&
@@ -152,6 +143,107 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
                 res.Add(inst);
             }
+            return res;
+        }
+
+        public static List<InstruccionP> Optimizar(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var actual = codigo.Select(c => new InstruccionP(c.Operacion, c.Argumento1, c.Argumento2)).ToList();
+
+            actual = SimplificarSaltosConstantesP(actual, bitacora);
+            actual = EliminarCodigoInalcanzableP(actual, bitacora);
+            actual = EliminarEtiquetasHuerfanasP(actual, bitacora);
+
+            return actual;
+        }
+
+        private static List<InstruccionP> SimplificarSaltosConstantesP(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var res = new List<InstruccionP>();
+
+            for (int i = 0; i < codigo.Count; i++)
+            {
+                var inst = codigo[i];
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+
+                if (op == "FJMP" && res.Count > 0 && res[res.Count - 1].Operacion.ToUpperInvariant() == "LIT")
+                {
+                    string lit = res[res.Count - 1].Argumento1;
+                    bool esVerdadero = lit == "1" || lit.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    bool esFalso = lit == "0" || lit.Equals("false", StringComparison.OrdinalIgnoreCase);
+
+                    if (esVerdadero || esFalso)
+                    {
+                        res.RemoveAt(res.Count - 1);
+                        if (esFalso)
+                        {
+                            bitacora.Add($"[Global P - Salto Constante] FJMP con 0 -> JMP {inst.Argumento1}");
+                            res.Add(new InstruccionP("JMP", inst.Argumento1));
+                        }
+                        else
+                        {
+                            bitacora.Add($"[Global P - Salto Constante] Eliminando FJMP con constante verdadera");
+                        }
+                        continue;
+                    }
+                }
+
+                res.Add(inst);
+            }
+
+            return res;
+        }
+
+        private static List<InstruccionP> EliminarCodigoInalcanzableP(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var res = new List<InstruccionP>();
+            bool inalcanzable = false;
+
+            foreach (var inst in codigo)
+            {
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+                if (op == "LABEL")
+                {
+                    inalcanzable = false;
+                    res.Add(inst);
+                    continue;
+                }
+
+                if (inalcanzable)
+                {
+                    bitacora.Add($"[Global P - Código Inalcanzable] Eliminado: {inst}");
+                    continue;
+                }
+
+                res.Add(inst);
+                if (op == "JMP")
+                    inalcanzable = true;
+            }
+
+            return res;
+        }
+
+        private static List<InstruccionP> EliminarEtiquetasHuerfanasP(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var etiquetasReferenciadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var inst in codigo)
+            {
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+                if (op == "JMP" || op == "FJMP")
+                    etiquetasReferenciadas.Add(inst.Argumento1);
+            }
+
+            var res = new List<InstruccionP>();
+            foreach (var inst in codigo)
+            {
+                if ((inst.Operacion ?? "").ToUpperInvariant() == "LABEL" && !etiquetasReferenciadas.Contains(inst.Argumento1))
+                {
+                    bitacora.Add($"[Global P - Etiqueta Huérfana] Eliminando {inst.Argumento1}:");
+                    continue;
+                }
+                res.Add(inst);
+            }
+
             return res;
         }
     }

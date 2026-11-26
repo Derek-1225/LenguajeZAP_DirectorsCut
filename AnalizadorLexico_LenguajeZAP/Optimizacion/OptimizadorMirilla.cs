@@ -11,7 +11,6 @@ namespace AnalizadorLexico_LenguajeZAP
             var lista = codigo.Select(c => c.Clonar()).ToList();
             bool cambio;
 
-            // Mapear saltos encadenados (L1: goto L2)
             var redirecciones = new Dictionary<string, string>();
             for (int i = 0; i < lista.Count - 1; i++)
             {
@@ -43,7 +42,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 {
                     var actual = lista[i];
 
-                    // Patrón 1: Auto-asignación redundante ($a = $a)
                     if (actual.Operador == "=" && actual.Arg1 == actual.Resultado)
                     {
                         bitacora.Add($"[Mirilla - Autoasignación] Eliminado: {actual}");
@@ -55,7 +53,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     {
                         var siguiente = lista[i + 1];
 
-                        // Patrón 2: Salto a la etiqueta inmediatamente siguiente (goto L1; L1:)
                         if (actual.Operador == "JUMP" && siguiente.Operador == "LABEL" && actual.Arg1 == siguiente.Arg1)
                         {
                             bitacora.Add($"[Mirilla - Salto Redundante] Eliminado goto {actual.Arg1} antes de {siguiente.Arg1}:");
@@ -63,7 +60,6 @@ namespace AnalizadorLexico_LenguajeZAP
                             continue;
                         }
 
-                        // Patrón 3: Fusión de temporal inmediato (t1 = a + b; $x = t1 -> $x = a + b)
                         bool actualEsTemporal = actual.Resultado.StartsWith("t") && int.TryParse(actual.Resultado.Substring(1), out _);
                         if (actualEsTemporal &&
                             actual.Operador != "LABEL" && actual.Operador != "JUMP" &&
@@ -73,7 +69,7 @@ namespace AnalizadorLexico_LenguajeZAP
                         {
                             bitacora.Add($"[Mirilla - Fusión Temporal] {actual} + {siguiente} -> {siguiente.Resultado} = {actual.Arg1} {actual.Operador} {actual.Arg2}");
                             nueva.Add(new InstruccionIntermedia(actual.Operador, actual.Arg1, actual.Arg2, siguiente.Resultado));
-                            i++; // Consumir ambas instrucciones
+                            i++;
                             cambio = true;
                             continue;
                         }
@@ -93,9 +89,75 @@ namespace AnalizadorLexico_LenguajeZAP
             for (int k = inicio; k < lista.Count; k++)
             {
                 if (lista[k].Arg1 == temp || lista[k].Arg2 == temp) return true;
-                if (lista[k].Resultado == temp) return false; // Se sobrescribió antes de volver a leerse
+                if (lista[k].Resultado == temp) return false;
             }
             return false;
+        }
+
+        public static List<InstruccionP> Optimizar(List<InstruccionP> codigo, List<string> bitacora)
+        {
+            var lista = codigo.Select(c => new InstruccionP(c.Operacion, c.Argumento1, c.Argumento2)).ToList();
+            bool cambio;
+
+            var redirecciones = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < lista.Count - 1; i++)
+            {
+                string o1 = (lista[i].Operacion ?? "").ToUpperInvariant();
+                string o2 = (lista[i + 1].Operacion ?? "").ToUpperInvariant();
+                if (o1 == "LABEL" && o2 == "JMP")
+                    redirecciones[lista[i].Argumento1] = lista[i + 1].Argumento1;
+            }
+
+            foreach (var inst in lista)
+            {
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+                if ((op == "JMP" || op == "FJMP") && redirecciones.TryGetValue(inst.Argumento1, out string destFinal))
+                {
+                    bitacora.Add($"[Mirilla P - Jump Threading] {inst.Argumento1} -> {destFinal}");
+                    inst.Argumento1 = destFinal;
+                }
+            }
+
+            do
+            {
+                cambio = false;
+                var nueva = new List<InstruccionP>();
+
+                for (int i = 0; i < lista.Count; i++)
+                {
+                    var actual = lista[i];
+                    string opAct = (actual.Operacion ?? "").ToUpperInvariant();
+
+                    if (i + 1 < lista.Count)
+                    {
+                        var siguiente = lista[i + 1];
+                        string opSig = (siguiente.Operacion ?? "").ToUpperInvariant();
+
+                        if (opAct == "JMP" && opSig == "LABEL" &&
+                            actual.Argumento1.Equals(siguiente.Argumento1, StringComparison.OrdinalIgnoreCase))
+                        {
+                            bitacora.Add($"[Mirilla P - Salto Redundante] Eliminado JMP {actual.Argumento1} antes de {siguiente.Argumento1}:");
+                            cambio = true;
+                            continue;
+                        }
+
+                        if (opAct == "LOD" && opSig == "STO" &&
+                            actual.Argumento1.Equals(siguiente.Argumento1, StringComparison.OrdinalIgnoreCase))
+                        {
+                            bitacora.Add($"[Mirilla P - Carga/Almacén Redundante] Eliminado par LOD/STO {actual.Argumento1}");
+                            i++;
+                            cambio = true;
+                            continue;
+                        }
+                    }
+
+                    nueva.Add(actual);
+                }
+
+                lista = nueva;
+            } while (cambio);
+
+            return lista;
         }
     }
 }

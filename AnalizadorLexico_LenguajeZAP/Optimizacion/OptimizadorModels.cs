@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Security.Policy;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
@@ -37,8 +39,8 @@ namespace AnalizadorLexico_LenguajeZAP
     public class ReporteCostos
     {
         public int TotalInstrucciones { get; set; }
-        public int TemporalesUtilizados { get; set; }     // Simula presión de registros/pila
-        public int AccesosMemoria { get; set; }           // Variables ($) y asignaciones
+        public int TemporalesUtilizados { get; set; }     // Temporales en TAC o profundidad máxima de pila en Código P
+        public int AccesosMemoria { get; set; }           // Variables ($) o LOD/STO en Código P
         public int CostoCiclosEstimado { get; set; }      // Peso computacional por tipo de op
         public List<string> BitacoraCambios { get; set; } = new List<string>();
 
@@ -53,7 +55,6 @@ namespace AnalizadorLexico_LenguajeZAP
                 if (inst.Operador == "LABEL") continue;
                 reporte.TotalInstrucciones++;
 
-                // Detectar temporales (t1, t2...) y variables ($a, $b...)
                 foreach (var op in new[] { inst.Arg1, inst.Arg2, inst.Resultado })
                 {
                     if (string.IsNullOrEmpty(op) || op == "-") continue;
@@ -66,7 +67,6 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
-                // Ponderación de costo de ejecución (3.2.1)
                 switch (inst.Operador)
                 {
                     case "^": reporte.CostoCiclosEstimado += 8; break;
@@ -88,6 +88,74 @@ namespace AnalizadorLexico_LenguajeZAP
             }
 
             reporte.TemporalesUtilizados = temporales.Count;
+            return reporte;
+        }
+
+        public static ReporteCostos Evaluar(List<InstruccionP> codigo)
+        {
+            var reporte = new ReporteCostos();
+            int pilaActual = 0;
+
+            foreach (var inst in codigo)
+            {
+                string op = (inst.Operacion ?? "").ToUpperInvariant();
+                if (op == "LABEL") continue;
+
+                reporte.TotalInstrucciones++;
+
+                switch (op)
+                {
+                    case "LIT":
+                        pilaActual++;
+                        reporte.CostoCiclosEstimado += 1;
+                        break;
+                    case "LOD":
+                        pilaActual++;
+                        reporte.AccesosMemoria++;
+                        reporte.CostoCiclosEstimado += 2;
+                        break;
+                    case "STO":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.AccesosMemoria++;
+                        reporte.CostoCiclosEstimado += 2;
+                        break;
+                    case "ADD":
+                    case "SUB":
+                    case "EQ":
+                    case "NE":
+                    case "LT":
+                    case "GT":
+                    case "LE":
+                    case "GE":
+                    case "AND":
+                    case "OR":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.CostoCiclosEstimado += 1;
+                        break;
+                    case "MUL":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.CostoCiclosEstimado += 4;
+                        break;
+                    case "DIV":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.CostoCiclosEstimado += 6;
+                        break;
+                    case "FJMP":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.CostoCiclosEstimado += 2;
+                        break;
+                    case "JMP":
+                        reporte.CostoCiclosEstimado += 2;
+                        break;
+                    default:
+                        reporte.CostoCiclosEstimado += 1;
+                        break;
+                }
+
+                if (pilaActual > reporte.TemporalesUtilizados)
+                    reporte.TemporalesUtilizados = pilaActual;
+            }
+
             return reporte;
         }
     }
