@@ -158,31 +158,29 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AnalizadorLexico.cs" />
-    <Compile Include="AnalizadorSemantico.cs" />
-    <Compile Include="CodigoTresDirecciones.cs" />
+    <Compile Include="CodigoIntermedio\CodigoTresDirecciones.cs" />
     <Compile Include="CompiladorExpresiones.cs" />
-    <Compile Include="Cuadruplo.cs" />
+    <Compile Include="CodigoIntermedio\Cuadruplo.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="GestorOptimizacion.cs" />
-    <Compile Include="InstruccionP.cs" />
+    <Compile Include="Optimizacion\GestorOptimizacion.cs" />
+    <Compile Include="CodigoIntermedio\InstruccionP.cs" />
     <Compile Include="ModernControls.cs" />
-    <Compile Include="OptimizadorCiclos.cs" />
-    <Compile Include="OptimizadorGlobal.cs" />
-    <Compile Include="OptimizadorLocal.cs" />
-    <Compile Include="OptimizadorMirilla.cs" />
-    <Compile Include="OptimizadorModels.cs" />
+    <Compile Include="Optimizacion\OptimizadorCiclos.cs" />
+    <Compile Include="Optimizacion\OptimizadorGlobal.cs" />
+    <Compile Include="Optimizacion\OptimizadorLocal.cs" />
+    <Compile Include="Optimizacion\OptimizadorMirilla.cs" />
+    <Compile Include="Optimizacion\OptimizadorModels.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PushdownParser.cs" />
-    <Compile Include="TraductorNotaciones.cs" />
-    <Compile Include="Triplo.cs" />
-    <Compile Include="ZapParsingResult.cs" />
+    <Compile Include="Analizadores\PushdownParser.cs" />
+    <Compile Include="CodigoIntermedio\TraductorNotaciones.cs" />
+    <Compile Include="CodigoIntermedio\Triplo.cs" />
+    <Compile Include="Analizadores\ZapParsingResult.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
