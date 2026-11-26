@@ -111,6 +111,10 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptCiclos = new System.Windows.Forms.TabPage();
             this.tabOptGlobal = new System.Windows.Forms.TabPage();
             this.tabOptMirilla = new System.Windows.Forms.TabPage();
+            this.rtOptLocal = new System.Windows.Forms.RichTextBox();
+            this.rtOptCiclos = new System.Windows.Forms.RichTextBox();
+            this.rtOptGlobal = new System.Windows.Forms.RichTextBox();
+            this.rtOptMirilla = new System.Windows.Forms.RichTextBox();
             this.panelTopBar.SuspendLayout();
             this.panelBrand.SuspendLayout();
             this.panelTopActions.SuspendLayout();
@@ -142,6 +146,10 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabNotacionesCodigoTAC.SuspendLayout();
             this.tabOptimizacion.SuspendLayout();
             this.tabTecnicasOptimizacion.SuspendLayout();
+            this.tabOptLocal.SuspendLayout();
+            this.tabOptCiclos.SuspendLayout();
+            this.tabOptGlobal.SuspendLayout();
+            this.tabOptMirilla.SuspendLayout();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -1116,6 +1124,7 @@ namespace AnalizadorLexico_LenguajeZAP
             // 
             // tabOptLocal
             // 
+            this.tabOptLocal.Controls.Add(this.rtOptLocal);
             this.tabOptLocal.Location = new System.Drawing.Point(4, 48);
             this.tabOptLocal.Name = "tabOptLocal";
             this.tabOptLocal.Padding = new System.Windows.Forms.Padding(3);
@@ -1126,6 +1135,7 @@ namespace AnalizadorLexico_LenguajeZAP
             // 
             // tabOptCiclos
             // 
+            this.tabOptCiclos.Controls.Add(this.rtOptCiclos);
             this.tabOptCiclos.Location = new System.Drawing.Point(4, 48);
             this.tabOptCiclos.Name = "tabOptCiclos";
             this.tabOptCiclos.Size = new System.Drawing.Size(1008, 578);
@@ -1135,6 +1145,7 @@ namespace AnalizadorLexico_LenguajeZAP
             // 
             // tabOptGlobal
             // 
+            this.tabOptGlobal.Controls.Add(this.rtOptGlobal);
             this.tabOptGlobal.Location = new System.Drawing.Point(4, 48);
             this.tabOptGlobal.Name = "tabOptGlobal";
             this.tabOptGlobal.Size = new System.Drawing.Size(1008, 578);
@@ -1144,12 +1155,45 @@ namespace AnalizadorLexico_LenguajeZAP
             // 
             // tabOptMirilla
             // 
+            this.tabOptMirilla.Controls.Add(this.rtOptMirilla);
             this.tabOptMirilla.Location = new System.Drawing.Point(4, 48);
             this.tabOptMirilla.Name = "tabOptMirilla";
-            this.tabOptMirilla.Size = new System.Drawing.Size(192, 48);
+            this.tabOptMirilla.Size = new System.Drawing.Size(1008, 578);
             this.tabOptMirilla.TabIndex = 4;
             this.tabOptMirilla.Text = "Mirilla";
             this.tabOptMirilla.UseVisualStyleBackColor = true;
+            // 
+            // rtOptLocal
+            // 
+            this.rtOptLocal.Location = new System.Drawing.Point(12, 14);
+            this.rtOptLocal.Name = "rtOptLocal";
+            this.rtOptLocal.Size = new System.Drawing.Size(990, 558);
+            this.rtOptLocal.TabIndex = 0;
+            this.rtOptLocal.Text = "";
+            // 
+            // rtOptCiclos
+            // 
+            this.rtOptCiclos.Location = new System.Drawing.Point(3, 3);
+            this.rtOptCiclos.Name = "rtOptCiclos";
+            this.rtOptCiclos.Size = new System.Drawing.Size(1002, 572);
+            this.rtOptCiclos.TabIndex = 0;
+            this.rtOptCiclos.Text = "";
+            // 
+            // rtOptGlobal
+            // 
+            this.rtOptGlobal.Location = new System.Drawing.Point(0, 3);
+            this.rtOptGlobal.Name = "rtOptGlobal";
+            this.rtOptGlobal.Size = new System.Drawing.Size(1005, 572);
+            this.rtOptGlobal.TabIndex = 2;
+            this.rtOptGlobal.Text = "";
+            // 
+            // rtOptMirilla
+            // 
+            this.rtOptMirilla.Location = new System.Drawing.Point(3, 3);
+            this.rtOptMirilla.Name = "rtOptMirilla";
+            this.rtOptMirilla.Size = new System.Drawing.Size(1002, 572);
+            this.rtOptMirilla.TabIndex = 2;
+            this.rtOptMirilla.Text = "";
             // 
             // Form1
             // 
@@ -1202,6 +1246,10 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabNotacionesCodigoTAC.PerformLayout();
             this.tabOptimizacion.ResumeLayout(false);
             this.tabTecnicasOptimizacion.ResumeLayout(false);
+            this.tabOptLocal.ResumeLayout(false);
+            this.tabOptCiclos.ResumeLayout(false);
+            this.tabOptGlobal.ResumeLayout(false);
+            this.tabOptMirilla.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -1304,5 +1352,9 @@ namespace AnalizadorLexico_LenguajeZAP
         private System.Windows.Forms.TabPage tabOptCiclos;
         private System.Windows.Forms.TabPage tabOptGlobal;
         private System.Windows.Forms.TabPage tabOptMirilla;
+        private System.Windows.Forms.RichTextBox rtOptLocal;
+        private System.Windows.Forms.RichTextBox rtOptCiclos;
+        private System.Windows.Forms.RichTextBox rtOptGlobal;
+        private System.Windows.Forms.RichTextBox rtOptMirilla;
     }
 }
