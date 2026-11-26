@@ -28,7 +28,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR29", new List<string> { "PR29", "CS20", "ID", "CS21", "CS24", "SW", "CS25" } },
                 { "PR10", new List<string> { "PR10", "CS20", "CONDIC", "CS21", "CS24", "BODY", "CS25" } },
                 { "PR09", new List<string> { "PR09", "CS24", "BODY", "CS25", "DW" } },
-                { "PR14", new List<string> { "PR14", "CS20", "ID", "OPASIG", "ARGF", "CS13", "CONDIC", "CS13", "ID", "OPAF", "CS21", "CS24", "BODY", "CS25" } },
+                { "PR14", new List<string> { "PR14", "CS20", "ID", "OPASIG", "ARGF", "CS13", "CONDIC", "CS13", "FOR_INC", "CS21", "CS24", "BODY", "CS25" } },
                 { "PR15", new List<string> { "PR15", "TIPO", "ID", "CS20", "P", "CS21", "CS24", "B", "CS25" } },
                 { "PR01", new List<string> { "PR01", "TIPO", "ID", "FIN_AR" } }          
             }},
@@ -89,7 +89,6 @@ namespace AnalizadorLexico_LenguajeZAP
             }},
             { "ELSE_OPT", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "PR17", new List<string> { "PR17", "CS24", "BODY", "CS25" } },
-   
                 { "ID",    new List<string>() },
                 { "PR22",  new List<string>() },
                 { "PR16",  new List<string>() },
@@ -106,6 +105,14 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "CS25",  new List<string>() },
                 { "PR12",  new List<string>() },
                 { "$",     new List<string>() } 
+            }},
+            { "FOR_INC", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
+                { "ID", new List<string> { "ID", "FOR_INC_REST" } }
+            }},
+            { "FOR_INC_REST", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
+                { "OPASIG", new List<string> { "OPASIG", "EXP" } },
+                { "OP++", new List<string> { "OP++" } },
+                { "OP--", new List<string> { "OP--" } }
             }},
             { "EXP", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "ID", new List<string> { "ARGC" } },
