@@ -1,16 +1,18 @@
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Data.SqlClient;
-using System.IO;
-using System.Reflection;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace AnalizadorLexico_LenguajeZAP
 {
@@ -51,9 +53,9 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private Panel panelZoomControls;
         private Label lblZoomLevel;
-        private Button btnZoomIn;
-        private Button btnZoomOut;
-        private Button btnZoomReset;
+        private ModernButton btnZoomIn;
+        private ModernButton btnZoomOut;
+        private ModernButton btnZoomReset;
 
         //Metodo Auxiliar para mostrar el numero de linea en editor de codigo
         public void ConfigurarNumeracion()
@@ -212,6 +214,21 @@ namespace AnalizadorLexico_LenguajeZAP
                 dtgTablaSimbolos.Columns.Add("colValor", "Valor");
             }
 
+
+            if (dtgCostosOptimizacion == null) return;
+
+            dtgCostosOptimizacion.Columns.Clear();
+            dtgCostosOptimizacion.Columns.Add("Representacion", "Representación");
+            dtgCostosOptimizacion.Columns.Add("Metrica", "Métrica");
+            dtgCostosOptimizacion.Columns.Add("Antes", "Antes");
+            dtgCostosOptimizacion.Columns.Add("Despues", "Después");
+            dtgCostosOptimizacion.Columns.Add("Diferencia", "Ahorro / Δ");
+            dtgCostosOptimizacion.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dtgCostosOptimizacion.ReadOnly = true;
+            dtgCostosOptimizacion.AllowUserToAddRows = false;
+            dtgCostosOptimizacion.RowHeadersVisible = false;
+
+
             dtgTablaSimbolos.EnableHeadersVisualStyles = false;
             dtgTablaSimbolos.BackgroundColor = Color.FromArgb(248, 250, 252);
             dtgTablaSimbolos.BorderStyle = BorderStyle.None;
@@ -309,7 +326,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 TextAlign = ContentAlignment.MiddleRight
             };
 
-            btnZoomOut = new Button
+            btnZoomOut = new ModernButton
             {
                 Text = "−",
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
@@ -342,7 +359,7 @@ namespace AnalizadorLexico_LenguajeZAP
             };
             lblZoomLevel.Click += (s, e) => RestablecerZoomCodigo();
 
-            btnZoomIn = new Button
+            btnZoomIn = new ModernButton
             {
                 Text = "+",
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
@@ -358,7 +375,7 @@ namespace AnalizadorLexico_LenguajeZAP
             btnZoomIn.FlatAppearance.BorderSize = 0;
             btnZoomIn.Click += (s, e) => CambiarZoomCodigo(1.0f);
 
-            btnZoomReset = new Button
+            btnZoomReset = new  ModernButton
             {
                 Text = "↺",
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
@@ -374,7 +391,7 @@ namespace AnalizadorLexico_LenguajeZAP
             btnZoomReset.FlatAppearance.BorderSize = 0;
             btnZoomReset.Click += (s, e) => RestablecerZoomCodigo();
 
-            ToolTip tip = new ToolTip();
+            System.Windows.Forms.ToolTip tip = new System.Windows.Forms.ToolTip();
             tip.SetToolTip(btnZoomOut, "Disminuir tamaño de letra (Ctrl - o Ctrl + Rueda abajo)");
             tip.SetToolTip(lblZoomLevel, "Restablecer al 100% (Ctrl 0)");
             tip.SetToolTip(btnZoomIn, "Aumentar tamaño de letra (Ctrl + o Ctrl + Rueda arriba)");
@@ -1903,9 +1920,109 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (resultadoSemantico)
                     {
                         GenerarCodigoIntermedio();
-                        GenerarTodoDinamico();
+                        var cuadruplosActuales = GenerarTodoDinamicoConRetorno();
                         lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
                         lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
+
+                        //OPTIMIZACIÓN DE CÓDIGO(TAC +CÓDIGO P)
+                        var tacEntrada = cuadruplosActuales
+                            .Select(c => new InstruccionIntermedia(c.Operador, c.Arg1, c.Arg2, c.Resultado))
+                            .ToList();
+
+                        var pEntrada = codigoIntermedio
+                            .Select(p => new InstruccionP(p.Operacion, p.Argumento1, p.Argumento2))
+                            .ToList();
+
+                        var bitacoraLocal = new List<string>();
+                        var tacLocal = OptimizadorLocal.Optimizar(tacEntrada, bitacoraLocal);
+                        var pLocal = OptimizadorLocal.Optimizar(pEntrada, bitacoraLocal);
+
+                        var bitacoraCiclos = new List<string>();
+                        var tacCiclos = OptimizadorCiclos.Optimizar(tacLocal, bitacoraCiclos);
+                        var pCiclos = OptimizadorCiclos.Optimizar(pLocal, bitacoraCiclos);
+
+                        var bitacoraGlobal = new List<string>();
+                        var tacGlobal = OptimizadorGlobal.Optimizar(tacCiclos, bitacoraGlobal);
+                        var pGlobal = OptimizadorGlobal.Optimizar(pCiclos, bitacoraGlobal);
+
+                        var bitacoraMirilla = new List<string>();
+                        var tacMirilla = OptimizadorMirilla.Optimizar(tacGlobal, bitacoraMirilla);
+                        var pMirilla = OptimizadorMirilla.Optimizar(pGlobal, bitacoraMirilla);
+
+
+                        // Volcado en RichTextBox por pestaña (ajusta los nombres a tus controles en el diseñador)
+                        if (rtOptLocal != null)
+                        {
+                            rtOptLocal.Text =
+                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, tacLocal.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, pLocal.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, bitacoraLocal);
+                        }
+
+                        if (rtOptCiclos != null)
+                        {
+                            rtOptCiclos.Text =
+                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, tacCiclos.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, pCiclos.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, bitacoraCiclos);
+                        }
+
+                        if (rtOptGlobal != null)
+                        {
+                            rtOptGlobal.Text =
+                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, tacGlobal.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, pGlobal.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, bitacoraGlobal);
+                        }
+
+                        if (rtOptMirilla != null)
+                        {
+                            rtOptMirilla.Text =
+                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, tacMirilla.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, pMirilla.Select(x => x.ToString())) +
+                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                                string.Join(Environment.NewLine, bitacoraMirilla);
+                        }
+
+                        var cTacIni = ReporteCostos.Evaluar(tacEntrada);
+                        var cTacFin = ReporteCostos.Evaluar(tacMirilla);
+                        var cPIni = ReporteCostos.Evaluar(pEntrada);
+                        var cPFin = ReporteCostos.Evaluar(pMirilla);
+
+                        if (dtgCostosOptimizacion != null)
+                        {
+                            dtgCostosOptimizacion.Rows.Clear();
+
+                            void AgregarFila(string rep, string metrica, int antes, int despues)
+                            {
+                                int diff = despues - antes;
+                                string diffTexto = diff == 0 ? "0" : diff.ToString("+#;-#;0");
+                                dtgCostosOptimizacion.Rows.Add(rep, metrica, antes, despues, diffTexto);
+                            }
+
+                            AgregarFila("TAC", "Total de instrucciones", cTacIni.TotalInstrucciones, cTacFin.TotalInstrucciones);
+                            AgregarFila("TAC", "Temporales utilizados", cTacIni.TemporalesUtilizados, cTacFin.TemporalesUtilizados);
+                            AgregarFila("TAC", "Accesos a memoria", cTacIni.AccesosMemoria, cTacFin.AccesosMemoria);
+                            AgregarFila("TAC", "Ciclos estimados", cTacIni.CostoCiclosEstimado, cTacFin.CostoCiclosEstimado);
+
+                            AgregarFila("Código P", "Total de instrucciones", cPIni.TotalInstrucciones, cPFin.TotalInstrucciones);
+                            AgregarFila("Código P", "Profundidad máx. de pila", cPIni.TemporalesUtilizados, cPFin.TemporalesUtilizados);
+                            AgregarFila("Código P", "Accesos a memoria", cPIni.AccesosMemoria, cPFin.AccesosMemoria);
+                            AgregarFila("Código P", "Ciclos estimados", cPIni.CostoCiclosEstimado, cPFin.CostoCiclosEstimado);
+                        }
+
+
                     }
                     else
                     {
@@ -2924,6 +3041,68 @@ namespace AnalizadorLexico_LenguajeZAP
             prefija.Add(string.Join(" ", pre));
         }
 
+        private List<Cuadruplo> GenerarTodoDinamicoConRetorno()
+        {
+            dtgCuadruplos.Rows.Clear();
+            dtgTriplos.Rows.Clear();
+            rtCodigoTAC.Clear();
+
+            if (rtNotacionInfija != null) rtNotacionInfija.Clear();
+            if (rtNotacionPostfija != null) rtNotacionPostfija.Clear();
+            if (rtNotacionPrefija != null) rtNotacionPrefija.Clear();
+
+            CompiladorExpresiones.ReiniciarTemporales();
+            InstruccionP.ReiniciarContadorEtiquetas();
+
+            List<Cuadruplo> cuadruplosGlobales = new List<Cuadruplo>();
+            List<Triplo> triplosGlobales = new List<Triplo>();
+            List<string> tacGlobales = new List<string>();
+
+            List<string> lineasInfijas = new List<string>();
+            List<string> lineasPostfijas = new List<string>();
+            List<string> lineasPrefijas = new List<string>();
+
+            int index = 0;
+
+            ProcesarBloqueDinamico(
+                ref index,
+                listaTokensCompletos,
+                cuadruplosGlobales,
+                triplosGlobales,
+                tacGlobales,
+                lineasInfijas,
+                lineasPostfijas,
+                lineasPrefijas
+            );
+
+            foreach (var c in cuadruplosGlobales)
+            {
+                dtgCuadruplos.Rows.Add(c.Operador, c.Arg1, c.Arg2, c.Resultado);
+            }
+
+            int idx = 0;
+            foreach (var t in triplosGlobales)
+            {
+                dtgTriplos.Rows.Add($"({idx})", t.Operador, t.Arg1, t.Arg2);
+                idx++;
+            }
+
+            rtCodigoTAC.Text = string.Join(Environment.NewLine, tacGlobales);
+
+            if (rtNotacionInfija != null) rtNotacionInfija.Text = string.Join(Environment.NewLine, lineasInfijas);
+            if (rtNotacionPostfija != null) rtNotacionPostfija.Text = string.Join(Environment.NewLine, lineasPostfijas);
+            if (rtNotacionPrefija != null) rtNotacionPrefija.Text = string.Join(Environment.NewLine, lineasPrefijas);
+
+            return cuadruplosGlobales;
+        }
+
+        private void LimpiarRichTextOptimizacion()
+        {
+            if (rtOptLocal!= null) rtOptLocal.Clear();
+            if (rtOptCiclos!= null) rtOptCiclos.Clear();
+            if (rtOptGlobal != null) rtOptGlobal.Clear();
+            if (rtOptMirilla != null) rtOptMirilla.Clear();
+        }
 
 
         private void lblStatusLeft_Click(object sender, EventArgs e)

@@ -108,13 +108,14 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabTecnicasOptimizacion = new AnalizadorLexico_LenguajeZAP.ModernTabControl();
             this.tabCostos = new System.Windows.Forms.TabPage();
             this.tabOptLocal = new System.Windows.Forms.TabPage();
-            this.tabOptCiclos = new System.Windows.Forms.TabPage();
-            this.tabOptGlobal = new System.Windows.Forms.TabPage();
-            this.tabOptMirilla = new System.Windows.Forms.TabPage();
             this.rtOptLocal = new System.Windows.Forms.RichTextBox();
+            this.tabOptCiclos = new System.Windows.Forms.TabPage();
             this.rtOptCiclos = new System.Windows.Forms.RichTextBox();
+            this.tabOptGlobal = new System.Windows.Forms.TabPage();
             this.rtOptGlobal = new System.Windows.Forms.RichTextBox();
+            this.tabOptMirilla = new System.Windows.Forms.TabPage();
             this.rtOptMirilla = new System.Windows.Forms.RichTextBox();
+            this.dtgCostosOptimizacion = new System.Windows.Forms.DataGridView();
             this.panelTopBar.SuspendLayout();
             this.panelBrand.SuspendLayout();
             this.panelTopActions.SuspendLayout();
@@ -146,10 +147,12 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabNotacionesCodigoTAC.SuspendLayout();
             this.tabOptimizacion.SuspendLayout();
             this.tabTecnicasOptimizacion.SuspendLayout();
+            this.tabCostos.SuspendLayout();
             this.tabOptLocal.SuspendLayout();
             this.tabOptCiclos.SuspendLayout();
             this.tabOptGlobal.SuspendLayout();
             this.tabOptMirilla.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).BeginInit();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -1114,6 +1117,7 @@ namespace AnalizadorLexico_LenguajeZAP
             // 
             // tabCostos
             // 
+            this.tabCostos.Controls.Add(this.dtgCostosOptimizacion);
             this.tabCostos.Location = new System.Drawing.Point(4, 48);
             this.tabCostos.Name = "tabCostos";
             this.tabCostos.Padding = new System.Windows.Forms.Padding(3);
@@ -1133,6 +1137,14 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptLocal.Text = "Local";
             this.tabOptLocal.UseVisualStyleBackColor = true;
             // 
+            // rtOptLocal
+            // 
+            this.rtOptLocal.Location = new System.Drawing.Point(3, 3);
+            this.rtOptLocal.Name = "rtOptLocal";
+            this.rtOptLocal.Size = new System.Drawing.Size(999, 572);
+            this.rtOptLocal.TabIndex = 0;
+            this.rtOptLocal.Text = "";
+            // 
             // tabOptCiclos
             // 
             this.tabOptCiclos.Controls.Add(this.rtOptCiclos);
@@ -1142,6 +1154,14 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptCiclos.TabIndex = 2;
             this.tabOptCiclos.Text = "Ciclos";
             this.tabOptCiclos.UseVisualStyleBackColor = true;
+            // 
+            // rtOptCiclos
+            // 
+            this.rtOptCiclos.Location = new System.Drawing.Point(3, 3);
+            this.rtOptCiclos.Name = "rtOptCiclos";
+            this.rtOptCiclos.Size = new System.Drawing.Size(1002, 572);
+            this.rtOptCiclos.TabIndex = 0;
+            this.rtOptCiclos.Text = "";
             // 
             // tabOptGlobal
             // 
@@ -1153,6 +1173,14 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptGlobal.Text = "Global";
             this.tabOptGlobal.UseVisualStyleBackColor = true;
             // 
+            // rtOptGlobal
+            // 
+            this.rtOptGlobal.Location = new System.Drawing.Point(0, 3);
+            this.rtOptGlobal.Name = "rtOptGlobal";
+            this.rtOptGlobal.Size = new System.Drawing.Size(1005, 572);
+            this.rtOptGlobal.TabIndex = 2;
+            this.rtOptGlobal.Text = "";
+            // 
             // tabOptMirilla
             // 
             this.tabOptMirilla.Controls.Add(this.rtOptMirilla);
@@ -1163,30 +1191,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptMirilla.Text = "Mirilla";
             this.tabOptMirilla.UseVisualStyleBackColor = true;
             // 
-            // rtOptLocal
-            // 
-            this.rtOptLocal.Location = new System.Drawing.Point(12, 14);
-            this.rtOptLocal.Name = "rtOptLocal";
-            this.rtOptLocal.Size = new System.Drawing.Size(990, 558);
-            this.rtOptLocal.TabIndex = 0;
-            this.rtOptLocal.Text = "";
-            // 
-            // rtOptCiclos
-            // 
-            this.rtOptCiclos.Location = new System.Drawing.Point(3, 3);
-            this.rtOptCiclos.Name = "rtOptCiclos";
-            this.rtOptCiclos.Size = new System.Drawing.Size(1002, 572);
-            this.rtOptCiclos.TabIndex = 0;
-            this.rtOptCiclos.Text = "";
-            // 
-            // rtOptGlobal
-            // 
-            this.rtOptGlobal.Location = new System.Drawing.Point(0, 3);
-            this.rtOptGlobal.Name = "rtOptGlobal";
-            this.rtOptGlobal.Size = new System.Drawing.Size(1005, 572);
-            this.rtOptGlobal.TabIndex = 2;
-            this.rtOptGlobal.Text = "";
-            // 
             // rtOptMirilla
             // 
             this.rtOptMirilla.Location = new System.Drawing.Point(3, 3);
@@ -1194,6 +1198,14 @@ namespace AnalizadorLexico_LenguajeZAP
             this.rtOptMirilla.Size = new System.Drawing.Size(1002, 572);
             this.rtOptMirilla.TabIndex = 2;
             this.rtOptMirilla.Text = "";
+            // 
+            // dtgCostosOptimizacion
+            // 
+            this.dtgCostosOptimizacion.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dtgCostosOptimizacion.Location = new System.Drawing.Point(6, 3);
+            this.dtgCostosOptimizacion.Name = "dtgCostosOptimizacion";
+            this.dtgCostosOptimizacion.Size = new System.Drawing.Size(996, 569);
+            this.dtgCostosOptimizacion.TabIndex = 0;
             // 
             // Form1
             // 
@@ -1246,10 +1258,12 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabNotacionesCodigoTAC.PerformLayout();
             this.tabOptimizacion.ResumeLayout(false);
             this.tabTecnicasOptimizacion.ResumeLayout(false);
+            this.tabCostos.ResumeLayout(false);
             this.tabOptLocal.ResumeLayout(false);
             this.tabOptCiclos.ResumeLayout(false);
             this.tabOptGlobal.ResumeLayout(false);
             this.tabOptMirilla.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -1356,5 +1370,6 @@ namespace AnalizadorLexico_LenguajeZAP
         private System.Windows.Forms.RichTextBox rtOptCiclos;
         private System.Windows.Forms.RichTextBox rtOptGlobal;
         private System.Windows.Forms.RichTextBox rtOptMirilla;
+        private System.Windows.Forms.DataGridView dtgCostosOptimizacion;
     }
 }
