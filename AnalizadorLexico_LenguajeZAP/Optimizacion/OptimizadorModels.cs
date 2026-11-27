@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -139,6 +139,10 @@ namespace AnalizadorLexico_LenguajeZAP
                     case "DIV":
                         pilaActual = Math.Max(0, pilaActual - 1);
                         reporte.CostoCiclosEstimado += 6;
+                        break;
+                    case "POW":
+                        pilaActual = Math.Max(0, pilaActual - 1);
+                        reporte.CostoCiclosEstimado += 8;
                         break;
                     case "FJMP":
                         pilaActual = Math.Max(0, pilaActual - 1);

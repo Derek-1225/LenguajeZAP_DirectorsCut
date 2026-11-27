@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,7 +11,13 @@ namespace AnalizadorLexico_LenguajeZAP
             var actual = codigo.Select(c => c.Clonar()).ToList();
 
             actual = SimplificarSaltosConstantes(actual, bitacora);
-            actual = EliminarCodigoInalcanzable(actual, bitacora);
+            int countAntes;
+            do
+            {
+                countAntes = actual.Count;
+                actual = EliminarEtiquetasHuerfanas(actual, bitacora);
+                actual = EliminarCodigoInalcanzable(actual, bitacora);
+            } while (actual.Count < countAntes);
             actual = EliminarCodigoMuerto(actual, bitacora);
             actual = EliminarEtiquetasHuerfanas(actual, bitacora);
 
@@ -151,8 +157,13 @@ namespace AnalizadorLexico_LenguajeZAP
             var actual = codigo.Select(c => new InstruccionP(c.Operacion, c.Argumento1, c.Argumento2)).ToList();
 
             actual = SimplificarSaltosConstantesP(actual, bitacora);
-            actual = EliminarCodigoInalcanzableP(actual, bitacora);
-            actual = EliminarEtiquetasHuerfanasP(actual, bitacora);
+            int countAntes;
+            do
+            {
+                countAntes = actual.Count;
+                actual = EliminarEtiquetasHuerfanasP(actual, bitacora);
+                actual = EliminarCodigoInalcanzableP(actual, bitacora);
+            } while (actual.Count < countAntes);
 
             return actual;
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +10,11 @@ namespace AnalizadorLexico_LenguajeZAP
     {
         // 1. CONVERTIR DE INFIJA A POSTFIJA
         public static List<string> InfijaAPostfija(List<string> tokensInfijos)
+        {
+            return InfijaAPostfijaInterna(tokensInfijos, false);
+        }
+
+        private static List<string> InfijaAPostfijaInterna(List<string> tokensInfijos, bool modoInvertido)
         {
             List<string> salida = new List<string>();
             Stack<string> operadores = new Stack<string>();
@@ -23,10 +28,15 @@ namespace AnalizadorLexico_LenguajeZAP
                 // Si es un operador con precedencia válida
                 else if (ObtenerPrecedencia(t) > 0)
                 {
-                    while (operadores.Count > 0 &&
-                           operadores.Peek() != "(" &&
-                           ObtenerPrecedencia(operadores.Peek()) >= ObtenerPrecedencia(t))
+                    while (operadores.Count > 0 && operadores.Peek() != "(")
                     {
+                        int precPila = ObtenerPrecedencia(operadores.Peek());
+                        int precActual = ObtenerPrecedencia(t);
+                        bool debeDesapilar = modoInvertido
+                            ? (EsAsociativoDerecha(t) ? precPila >= precActual : precPila > precActual)
+                            : (EsAsociativoDerecha(t) ? precPila > precActual : precPila >= precActual);
+
+                        if (!debeDesapilar) break;
                         salida.Add(operadores.Pop());
                     }
                     operadores.Push(t);
@@ -67,11 +77,13 @@ namespace AnalizadorLexico_LenguajeZAP
                 else if (invertida[i] == ")") invertida[i] = "(";
             }
 
-            var postfijaInvertida = InfijaAPostfija(invertida);
+            var postfijaInvertida = InfijaAPostfijaInterna(invertida, true);
 
             postfijaInvertida.Reverse();
             return postfijaInvertida;
         }
+
+        private static bool EsAsociativoDerecha(string operador) => operador == "^" || operador == "=";
 
         // 3. JERARQUÍA Y PRECEDENCIA DE OPERADORES
         private static int ObtenerPrecedencia(string operador)
@@ -91,6 +103,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "-": return 6;
                 case "*":
                 case "/": return 7;
+                case "^": return 8;
                 default: return 0;
             }
         }

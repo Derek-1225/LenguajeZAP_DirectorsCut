@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -87,10 +87,6 @@ namespace AnalizadorLexico_LenguajeZAP
                         inst.Arg1 = tempPrevio;
                         inst.Arg2 = "-";
                     }
-                    else
-                    {
-                        subexpresiones[firma] = inst.Resultado;
-                    }
                 }
 
                 string destino = inst.Resultado;
@@ -110,6 +106,13 @@ namespace AnalizadorLexico_LenguajeZAP
                         cseInvalidas.Add(kv.Key);
                 }
                 foreach (var k in cseInvalidas) subexpresiones.Remove(k);
+
+                if (inst.Operador != "=" && inst.Arg2 != "-" && inst.Arg1 != destino && inst.Arg2 != destino)
+                {
+                    string firma = $"{inst.Operador}|{inst.Arg1}|{inst.Arg2}";
+                    if (!subexpresiones.ContainsKey(firma))
+                        subexpresiones[firma] = destino;
+                }
 
                 if (inst.Operador == "=")
                 {
@@ -209,11 +212,38 @@ namespace AnalizadorLexico_LenguajeZAP
                         }
                         if (opAct == "MUL" && Math.Abs(k) < 1e-9)
                         {
-                            bitacora.Add("[Local P - Anulación] Producto por 0 -> LIT 0");
-                            optimizado.RemoveAt(optimizado.Count - 1);
-                            optimizado.RemoveAt(optimizado.Count - 1);
-                            optimizado.Add(new InstruccionP("LIT", "0"));
-                            continue;
+                            int idx = optimizado.Count - 2;
+                            int necesidad = 1;
+                            bool esPura = true;
+
+                            while (idx >= 0)
+                            {
+                                string opPrev = (optimizado[idx].Operacion ?? "").ToUpperInvariant();
+                                if (opPrev == "LIT" || opPrev == "LOD")
+                                {
+                                    necesidad--;
+                                }
+                                else if (EsOperacionBinariaP(opPrev) || opPrev == "AND" || opPrev == "OR")
+                                {
+                                    necesidad++;
+                                }
+                                else
+                                {
+                                    esPura = false;
+                                    break;
+                                }
+
+                                if (necesidad == 0) break;
+                                idx--;
+                            }
+
+                            if (esPura && necesidad == 0)
+                            {
+                                bitacora.Add("[Local P - Anulación] Producto por 0 -> LIT 0");
+                                optimizado.RemoveRange(idx, optimizado.Count - idx);
+                                optimizado.Add(new InstruccionP("LIT", "0"));
+                                continue;
+                            }
                         }
                         if (opAct == "MUL" && Math.Abs(k - 2.0) < 1e-9 &&
                             (prev2.Operacion.ToUpperInvariant() == "LOD" || prev2.Operacion.ToUpperInvariant() == "LIT"))
@@ -248,6 +278,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "SUB":
                 case "MUL":
                 case "DIV":
+                case "POW":
                 case "EQ":
                 case "NE":
                 case "LT":
@@ -268,6 +299,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "SUB": return EvaluarOperacion("-", a, b, out res);
                 case "MUL": return EvaluarOperacion("*", a, b, out res);
                 case "DIV": return EvaluarOperacion("/", a, b, out res);
+                case "POW": return EvaluarOperacion("^", a, b, out res);
                 case "GT": return EvaluarOperacion(">", a, b, out res);
                 case "LT": return EvaluarOperacion("<", a, b, out res);
                 case "GE": return EvaluarOperacion(">=", a, b, out res);
@@ -296,6 +328,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 else if (inst.Arg1 == "1") { bitacora.Add($"[Local - Identidad] 1 * {inst.Arg2} -> {inst.Arg2}"); inst.Operador = "="; inst.Arg1 = inst.Arg2; inst.Arg2 = "-"; }
                 else if (inst.Arg2 == "0" || inst.Arg1 == "0") { bitacora.Add($"[Local - Anulación] Multiplicación por 0 -> 0"); inst.Operador = "="; inst.Arg1 = "0"; inst.Arg2 = "-"; }
                 else if (inst.Arg2 == "2") { bitacora.Add($"[Local - Reducción Potencia] {inst.Arg1} * 2 -> {inst.Arg1} + {inst.Arg1}"); inst.Operador = "+"; inst.Arg2 = inst.Arg1; }
+                else if (inst.Arg1 == "2") { bitacora.Add($"[Local - Reducción Potencia] 2 * {inst.Arg2} -> {inst.Arg2} + {inst.Arg2}"); inst.Operador = "+"; inst.Arg1 = inst.Arg2; }
             }
             else if (inst.Operador == "/" && inst.Arg2 == "1")
             {

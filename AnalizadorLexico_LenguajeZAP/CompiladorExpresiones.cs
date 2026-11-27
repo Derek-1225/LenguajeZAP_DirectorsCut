@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -50,7 +50,23 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
                 else // Es un operador (+, -, *, /, etc.)
                 {
-                    if (pilaCuadruplos.Count < 2 || pilaTriplos.Count < 2) continue;
+                    if (pilaCuadruplos.Count < 2 || pilaTriplos.Count < 2)
+                    {
+                        if (token == "-" && pilaCuadruplos.Count == 1 && pilaTriplos.Count == 1)
+                        {
+                            string argCuad = pilaCuadruplos.Pop();
+                            string tempUnario = $"t{contadorTemporales++}";
+                            cuadruplos.Add(new Cuadruplo("-", "0", argCuad, tempUnario));
+                            tac.Add($"{tempUnario} = 0 - {argCuad}");
+                            pilaCuadruplos.Push(tempUnario);
+
+                            string argTrip = pilaTriplos.Pop();
+                            int indiceUnario = triplos.Count;
+                            triplos.Add(new Triplo("-", "0", argTrip));
+                            pilaTriplos.Push($"({indiceUnario})");
+                        }
+                        continue;
+                    }
 
                     // --- 1. Cuádruplos y TAC (Usan temporales t1, t2...) ---
                     string arg2Cuad = pilaCuadruplos.Pop();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -81,17 +81,33 @@ namespace AnalizadorLexico_LenguajeZAP
             nuevosTriplos = new List<Triplo>();
             nuevoTac = new List<string>();
 
+            var mapaTempTriplo = new Dictionary<string, string>();
+
+            string ResolverRefTriplo(string op) =>
+                !string.IsNullOrEmpty(op) && mapaTempTriplo.TryGetValue(op, out string refIdx) ? refIdx : op;
+
             foreach (var inst in optimizado)
             {
                 nuevosCuadruplos.Add(new Cuadruplo(inst.Operador, inst.Arg1, inst.Arg2, inst.Resultado));
                 nuevoTac.Add(inst.ToString());
 
+                int idxTriplo = nuevosTriplos.Count;
+                string a1 = ResolverRefTriplo(inst.Arg1);
+                string a2 = ResolverRefTriplo(inst.Arg2);
+
                 if (inst.Operador == "=")
-                    nuevosTriplos.Add(new Triplo("=", inst.Resultado, inst.Arg1));
+                    nuevosTriplos.Add(new Triplo("=", inst.Resultado, a1));
                 else if (inst.Operador == "ifFalse" || inst.Operador == "ifTrue")
-                    nuevosTriplos.Add(new Triplo(inst.Operador, inst.Arg1, inst.Resultado));
+                    nuevosTriplos.Add(new Triplo(inst.Operador, a1, inst.Resultado));
                 else
-                    nuevosTriplos.Add(new Triplo(inst.Operador, inst.Arg1, inst.Arg2));
+                    nuevosTriplos.Add(new Triplo(inst.Operador, a1, a2));
+
+                if (!string.IsNullOrEmpty(inst.Resultado) &&
+                    inst.Resultado.StartsWith("t") &&
+                    int.TryParse(inst.Resultado.Substring(1), out _))
+                {
+                    mapaTempTriplo[inst.Resultado] = $"({idxTriplo})";
+                }
             }
         }
     }

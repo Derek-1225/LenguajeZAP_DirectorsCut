@@ -67,7 +67,10 @@ namespace AnalizadorLexico_LenguajeZAP
                             siguiente.Operador == "=" && siguiente.Arg1 == actual.Resultado &&
                             !TemporalUsadoDespues(lista, i + 2, actual.Resultado))
                         {
-                            bitacora.Add($"[Mirilla - Fusión Temporal] {actual} + {siguiente} -> {siguiente.Resultado} = {actual.Arg1} {actual.Operador} {actual.Arg2}");
+                            string nuevaDesc = actual.Operador == "="
+                                ? $"{siguiente.Resultado} = {actual.Arg1}"
+                                : $"{siguiente.Resultado} = {actual.Arg1} {actual.Operador} {actual.Arg2}";
+                            bitacora.Add($"[Mirilla - Fusión Temporal] {actual} + {siguiente} -> {nuevaDesc}");
                             nueva.Add(new InstruccionIntermedia(actual.Operador, actual.Arg1, actual.Arg2, siguiente.Resultado));
                             i++;
                             cambio = true;
@@ -78,7 +81,26 @@ namespace AnalizadorLexico_LenguajeZAP
                     nueva.Add(actual);
                 }
 
-                lista = nueva;
+                var etiquetasRef = new HashSet<string>();
+                foreach (var inst in nueva)
+                {
+                    if (inst.Operador == "JUMP") etiquetasRef.Add(inst.Arg1);
+                    else if (inst.Operador == "ifFalse" || inst.Operador == "ifTrue") etiquetasRef.Add(inst.Resultado);
+                }
+
+                var sinHuerfanas = new List<InstruccionIntermedia>();
+                foreach (var inst in nueva)
+                {
+                    if (inst.Operador == "LABEL" && !etiquetasRef.Contains(inst.Arg1))
+                    {
+                        bitacora.Add($"[Mirilla - Etiqueta Huérfana] Eliminando {inst.Arg1}:");
+                        cambio = true;
+                        continue;
+                    }
+                    sinHuerfanas.Add(inst);
+                }
+
+                lista = sinHuerfanas;
             } while (cambio);
 
             return lista;
@@ -154,7 +176,27 @@ namespace AnalizadorLexico_LenguajeZAP
                     nueva.Add(actual);
                 }
 
-                lista = nueva;
+                var etiquetasRefP = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var inst in nueva)
+                {
+                    string opInst = (inst.Operacion ?? "").ToUpperInvariant();
+                    if (opInst == "JMP" || opInst == "FJMP")
+                        etiquetasRefP.Add(inst.Argumento1);
+                }
+
+                var sinHuerfanasP = new List<InstruccionP>();
+                foreach (var inst in nueva)
+                {
+                    if ((inst.Operacion ?? "").ToUpperInvariant() == "LABEL" && !etiquetasRefP.Contains(inst.Argumento1))
+                    {
+                        bitacora.Add($"[Mirilla P - Etiqueta Huérfana] Eliminando {inst.Argumento1}:");
+                        cambio = true;
+                        continue;
+                    }
+                    sinHuerfanasP.Add(inst);
+                }
+
+                lista = sinHuerfanasP;
             } while (cambio);
 
             return lista;

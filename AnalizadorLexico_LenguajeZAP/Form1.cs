@@ -503,6 +503,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             if (contadorGlobal > 0)
             {
+                LimpiarSalidasCompilacion();
                 lblStatusLeft.Text = $"● {contadorGlobal} error(es) léxico(s) detectado(s)";
                 lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
             }
@@ -516,22 +517,19 @@ namespace AnalizadorLexico_LenguajeZAP
                     bool resultadoSemantico = AnalizadorSemantico();
                     if (resultadoSemantico)
                     {
-
-
-                        GenerarTodoDinamico();
-                        lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
-                        lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
+                        EjecutarGeneracionYOptimizacion();
                     }
                     else
                     {
                         ActualizarDataGrid();
-                        rtCodigoIntermedio.Clear();
+                        LimpiarSalidasCompilacion();
                         lblStatusLeft.Text = "● Errores semánticos detectados";
                         lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                     }
                 }
                 else
                 {
+                    LimpiarSalidasCompilacion();
                     lblStatusLeft.Text = "● Errores sintácticos detectados";
                     lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                 }
@@ -691,6 +689,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     string resComa = ValidarCadena(matriz, ",");
                     if (resComa.StartsWith("ER") || resComa == "CADENA_NO_VALIDA" || string.IsNullOrEmpty(resComa)) resComa = "CS13";
 
+                    VerificarSiEsError(resComa, ",", numLinea, rtbErrores, ref totalErrores);
                     sbLinea.Append(resComa + " ");
                     continue;
                 }
@@ -1906,6 +1905,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             if (contadorGlobal > 0)
             {
+                LimpiarSalidasCompilacion();
                 lblStatusLeft.Text = $"● {contadorGlobal} error(es) léxico(s) detectado(s)";
                 lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
             }
@@ -1919,124 +1919,140 @@ namespace AnalizadorLexico_LenguajeZAP
                     bool resultadoSemantico = AnalizadorSemantico();
                     if (resultadoSemantico)
                     {
-                        GenerarCodigoIntermedio();
-                        var cuadruplosActuales = GenerarTodoDinamicoConRetorno();
-                        lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
-                        lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
-
-                        //OPTIMIZACIÓN DE CÓDIGO(TAC +CÓDIGO P)
-                        var tacEntrada = cuadruplosActuales
-                            .Select(c => new InstruccionIntermedia(c.Operador, c.Arg1, c.Arg2, c.Resultado))
-                            .ToList();
-
-                        var pEntrada = codigoIntermedio
-                            .Select(p => new InstruccionP(p.Operacion, p.Argumento1, p.Argumento2))
-                            .ToList();
-
-                        var bitacoraLocal = new List<string>();
-                        var tacLocal = OptimizadorLocal.Optimizar(tacEntrada, bitacoraLocal);
-                        var pLocal = OptimizadorLocal.Optimizar(pEntrada, bitacoraLocal);
-
-                        var bitacoraCiclos = new List<string>();
-                        var tacCiclos = OptimizadorCiclos.Optimizar(tacLocal, bitacoraCiclos);
-                        var pCiclos = OptimizadorCiclos.Optimizar(pLocal, bitacoraCiclos);
-
-                        var bitacoraGlobal = new List<string>();
-                        var tacGlobal = OptimizadorGlobal.Optimizar(tacCiclos, bitacoraGlobal);
-                        var pGlobal = OptimizadorGlobal.Optimizar(pCiclos, bitacoraGlobal);
-
-                        var bitacoraMirilla = new List<string>();
-                        var tacMirilla = OptimizadorMirilla.Optimizar(tacGlobal, bitacoraMirilla);
-                        var pMirilla = OptimizadorMirilla.Optimizar(pGlobal, bitacoraMirilla);
-
-
-                        // Volcado en RichTextBox por pestaña (ajusta los nombres a tus controles en el diseñador)
-                        if (rtOptLocal != null)
-                        {
-                            rtOptLocal.Text =
-                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, tacLocal.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, pLocal.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, bitacoraLocal);
-                        }
-
-                        if (rtOptCiclos != null)
-                        {
-                            rtOptCiclos.Text =
-                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, tacCiclos.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, pCiclos.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, bitacoraCiclos);
-                        }
-
-                        if (rtOptGlobal != null)
-                        {
-                            rtOptGlobal.Text =
-                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, tacGlobal.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, pGlobal.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, bitacoraGlobal);
-                        }
-
-                        if (rtOptMirilla != null)
-                        {
-                            rtOptMirilla.Text =
-                                $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, tacMirilla.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, pMirilla.Select(x => x.ToString())) +
-                                $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                                string.Join(Environment.NewLine, bitacoraMirilla);
-                        }
-
-                        var cTacIni = ReporteCostos.Evaluar(tacEntrada);
-                        var cTacFin = ReporteCostos.Evaluar(tacMirilla);
-                        var cPIni = ReporteCostos.Evaluar(pEntrada);
-                        var cPFin = ReporteCostos.Evaluar(pMirilla);
-
-                        if (dtgCostosOptimizacion != null)
-                        {
-                            dtgCostosOptimizacion.Rows.Clear();
-
-                            void AgregarFila(string rep, string metrica, int antes, int despues)
-                            {
-                                int diff = despues - antes;
-                                string diffTexto = diff == 0 ? "0" : diff.ToString("+#;-#;0");
-                                dtgCostosOptimizacion.Rows.Add(rep, metrica, antes, despues, diffTexto);
-                            }
-
-                            AgregarFila("TAC", "Total de instrucciones", cTacIni.TotalInstrucciones, cTacFin.TotalInstrucciones);
-                            AgregarFila("TAC", "Temporales utilizados", cTacIni.TemporalesUtilizados, cTacFin.TemporalesUtilizados);
-                            AgregarFila("TAC", "Accesos a memoria", cTacIni.AccesosMemoria, cTacFin.AccesosMemoria);
-                            AgregarFila("TAC", "Ciclos estimados", cTacIni.CostoCiclosEstimado, cTacFin.CostoCiclosEstimado);
-
-                            AgregarFila("Código P", "Total de instrucciones", cPIni.TotalInstrucciones, cPFin.TotalInstrucciones);
-                            AgregarFila("Código P", "Profundidad máx. de pila", cPIni.TemporalesUtilizados, cPFin.TemporalesUtilizados);
-                            AgregarFila("Código P", "Accesos a memoria", cPIni.AccesosMemoria, cPFin.AccesosMemoria);
-                            AgregarFila("Código P", "Ciclos estimados", cPIni.CostoCiclosEstimado, cPFin.CostoCiclosEstimado);
-                        }
-
-
+                        EjecutarGeneracionYOptimizacion();
                     }
                     else
                     {
                         ActualizarDataGrid();
-                        rtCodigoIntermedio.Clear();
+                        LimpiarSalidasCompilacion();
                         lblStatusLeft.Text = "● Errores semánticos detectados";
                         lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                     }
                 }
                 else
                 {
+                    LimpiarSalidasCompilacion();
                     lblStatusLeft.Text = "● Errores sintácticos detectados";
                     lblStatusLeft.ForeColor = Color.FromArgb(248, 113, 113);
                 }
+            }
+        }
+
+        private void LimpiarSalidasCompilacion()
+        {
+            codigoIntermedio.Clear();
+            if (rtCodigoIntermedio != null) rtCodigoIntermedio.Clear();
+            if (dtgCuadruplos != null) dtgCuadruplos.Rows.Clear();
+            if (dtgTriplos != null) dtgTriplos.Rows.Clear();
+            if (rtCodigoTAC != null) rtCodigoTAC.Clear();
+            if (rtNotacionInfija != null) rtNotacionInfija.Clear();
+            if (rtNotacionPostfija != null) rtNotacionPostfija.Clear();
+            if (rtNotacionPrefija != null) rtNotacionPrefija.Clear();
+            LimpiarRichTextOptimizacion();
+            if (dtgCostosOptimizacion != null) dtgCostosOptimizacion.Rows.Clear();
+        }
+
+        private void EjecutarGeneracionYOptimizacion()
+        {
+            GenerarCodigoIntermedio();
+            var cuadruplosActuales = GenerarTodoDinamicoConRetorno();
+            lblStatusLeft.Text = "● Compilación exitosa: Estructura válida y Código P generado";
+            lblStatusLeft.ForeColor = Color.FromArgb(52, 211, 153);
+
+            // OPTIMIZACIÓN DE CÓDIGO (TAC + CÓDIGO P)
+            var tacEntrada = cuadruplosActuales
+                .Select(c => new InstruccionIntermedia(c.Operador, c.Arg1, c.Arg2, c.Resultado))
+                .ToList();
+
+            var pEntrada = codigoIntermedio
+                .Select(p => new InstruccionP(p.Operacion, p.Argumento1, p.Argumento2))
+                .ToList();
+
+            var bitacoraLocal = new List<string>();
+            var tacLocal = OptimizadorLocal.Optimizar(tacEntrada, bitacoraLocal);
+            var pLocal = OptimizadorLocal.Optimizar(pEntrada, bitacoraLocal);
+
+            var bitacoraCiclos = new List<string>();
+            var tacCiclos = OptimizadorCiclos.Optimizar(tacLocal, bitacoraCiclos);
+            var pCiclos = OptimizadorCiclos.Optimizar(pLocal, bitacoraCiclos);
+
+            var bitacoraGlobal = new List<string>();
+            var tacGlobal = OptimizadorGlobal.Optimizar(tacCiclos, bitacoraGlobal);
+            var pGlobal = OptimizadorGlobal.Optimizar(pCiclos, bitacoraGlobal);
+
+            var bitacoraMirilla = new List<string>();
+            var tacMirilla = OptimizadorMirilla.Optimizar(tacGlobal, bitacoraMirilla);
+            var pMirilla = OptimizadorMirilla.Optimizar(pGlobal, bitacoraMirilla);
+
+            if (rtOptLocal != null)
+            {
+                rtOptLocal.Text =
+                    $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, tacLocal.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, pLocal.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraLocal);
+            }
+
+            if (rtOptCiclos != null)
+            {
+                rtOptCiclos.Text =
+                    $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, tacCiclos.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, pCiclos.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraCiclos);
+            }
+
+            if (rtOptGlobal != null)
+            {
+                rtOptGlobal.Text =
+                    $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, tacGlobal.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, pGlobal.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraGlobal);
+            }
+
+            if (rtOptMirilla != null)
+            {
+                rtOptMirilla.Text =
+                    $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, tacMirilla.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, pMirilla.Select(x => x.ToString())) +
+                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraMirilla);
+            }
+
+            var cTacIni = ReporteCostos.Evaluar(tacEntrada);
+            var cTacFin = ReporteCostos.Evaluar(tacMirilla);
+            var cPIni = ReporteCostos.Evaluar(pEntrada);
+            var cPFin = ReporteCostos.Evaluar(pMirilla);
+
+            if (dtgCostosOptimizacion != null)
+            {
+                dtgCostosOptimizacion.Rows.Clear();
+
+                void AgregarFila(string rep, string metrica, int antes, int despues)
+                {
+                    int diff = despues - antes;
+                    string diffTexto = diff == 0 ? "0" : diff.ToString("+#;-#;0");
+                    dtgCostosOptimizacion.Rows.Add(rep, metrica, antes, despues, diffTexto);
+                }
+
+                AgregarFila("TAC", "Total de instrucciones", cTacIni.TotalInstrucciones, cTacFin.TotalInstrucciones);
+                AgregarFila("TAC", "Temporales utilizados", cTacIni.TemporalesUtilizados, cTacFin.TemporalesUtilizados);
+                AgregarFila("TAC", "Accesos a memoria", cTacIni.AccesosMemoria, cTacFin.AccesosMemoria);
+                AgregarFila("TAC", "Ciclos estimados", cTacIni.CostoCiclosEstimado, cTacFin.CostoCiclosEstimado);
+
+                AgregarFila("Código P", "Total de instrucciones", cPIni.TotalInstrucciones, cPFin.TotalInstrucciones);
+                AgregarFila("Código P", "Profundidad máx. de pila", cPIni.TemporalesUtilizados, cPFin.TemporalesUtilizados);
+                AgregarFila("Código P", "Accesos a memoria", cPIni.AccesosMemoria, cPFin.AccesosMemoria);
+                AgregarFila("Código P", "Ciclos estimados", cPIni.CostoCiclosEstimado, cPFin.CostoCiclosEstimado);
             }
         }
 
@@ -2284,7 +2300,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     int parte = 0;
                     foreach (var t in forParams)
                     {
-                        if (t == ";") { parte++; continue; }
+                        if (t == ";" || t == ",") { parte++; continue; }
                         if (parte == 0) initTokens.Add(t);
                         else if (parte == 1) condTokens.Add(t);
                         else if (parte == 2) incTokens.Add(t);
@@ -2306,6 +2322,11 @@ namespace AnalizadorLexico_LenguajeZAP
                         string varNameInc = incTokens[idxAsigInc - 1];
                         List<string> exprInc = incTokens.Skip(idxAsigInc + 1).ToList();
                         incInsts = InstruccionP.GenerarCodigoDinamico(varNameInc, exprInc);
+                    }
+                    else if (incTokens.Count >= 2 && (incTokens[1] == "++" || incTokens[1] == "--"))
+                    {
+                        string opInc = incTokens[1] == "++" ? "+" : "-";
+                        incInsts = InstruccionP.GenerarCodigoDinamico(incTokens[0], new List<string> { incTokens[0], opInc, "1" });
                     }
 
                     while (index < tokens.Count && tokens[index].Lexema != "{") index++;
@@ -2786,7 +2807,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     int parte = 0;
                     foreach (var t in forTokens)
                     {
-                        if (t == ";") { parte++; continue; }
+                        if (t == ";" || t == ",") { parte++; continue; }
                         if (parte == 0) initTokens.Add(t);
                         else if (parte == 1) condTokens.Add(t);
                         else if (parte == 2) incTokens.Add(t);
@@ -2794,11 +2815,20 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     if (initTokens.Count > 0)
                     {
-                        var resInit = CompiladorExpresiones.Compilar(initTokens.Skip(2).ToList(), cuadruplos, triplos, tac);
-                        string varI = initTokens[1];
-                        cuadruplos.Add(new Cuadruplo("=", resInit.ResultadoCuadruplo, "-", varI));
-                        triplos.Add(new Triplo("=", varI, resInit.ResultadoTriplo));
-                        tac.Add($"{varI} = {resInit.ResultadoCuadruplo}");
+                        int idxAsigInit = initTokens.IndexOf("=");
+                        if (idxAsigInit != -1 && idxAsigInit > 0)
+                        {
+                            string varI = initTokens[idxAsigInit - 1];
+                            List<string> exprInit = initTokens.Skip(idxAsigInit + 1).ToList();
+                            var resInit = CompiladorExpresiones.Compilar(exprInit, cuadruplos, triplos, tac);
+                            cuadruplos.Add(new Cuadruplo("=", resInit.ResultadoCuadruplo, "-", varI));
+                            triplos.Add(new Triplo("=", varI, resInit.ResultadoTriplo));
+                            tac.Add($"{varI} = {resInit.ResultadoCuadruplo}");
+
+                            List<string> tokensInitCompleta = new List<string> { varI, "=" };
+                            tokensInitCompleta.AddRange(exprInit);
+                            RegistrarNotacionesEx(tokensInitCompleta, infija, postfija, prefija);
+                        }
                     }
 
                     string etiquetaInicio = InstruccionP.ObtenerNuevaEtiqueta();
@@ -2842,6 +2872,19 @@ namespace AnalizadorLexico_LenguajeZAP
                             tokensIncCompleta.AddRange(exprInc);
                             RegistrarNotacionesEx(tokensIncCompleta, infija, postfija, prefija);
                         }
+                        else if (incTokens.Count >= 2 && (incTokens[1] == "++" || incTokens[1] == "--"))
+                        {
+                            string varInc = incTokens[0];
+                            string opInc = incTokens[1] == "++" ? "+" : "-";
+                            List<string> exprInc = new List<string> { varInc, opInc, "1" };
+
+                            var resInc = CompiladorExpresiones.Compilar(exprInc, cuadruplos, triplos, tac);
+                            cuadruplos.Add(new Cuadruplo("=", resInc.ResultadoCuadruplo, "-", varInc));
+                            triplos.Add(new Triplo("=", varInc, resInc.ResultadoTriplo));
+                            tac.Add($"{varInc} = {resInc.ResultadoCuadruplo}");
+
+                            RegistrarNotacionesEx(new List<string> { varInc, "=", varInc, opInc, "1" }, infija, postfija, prefija);
+                        }
                         else
                         {
                             CompiladorExpresiones.Compilar(incTokens, cuadruplos, triplos, tac);
@@ -2875,10 +2918,11 @@ namespace AnalizadorLexico_LenguajeZAP
                         string etiquetaFin = InstruccionP.ObtenerNuevaEtiqueta();
                         string etiquetaDefault = null;
 
-                        List<(string ValorCaso, string EtiquetaCuerpo, bool TieneBreak, List<string> ContenidoPrint)> casos = new List<(string, string, bool, List<string>)>();
+                        List<(string ValorCaso, string EtiquetaCuerpo, bool TieneBreak, List<(string Tipo, string Destino, List<string> Tokens)> Acciones)> casos =
+                            new List<(string, string, bool, List<(string, string, List<string>)>)>();
 
                         string valActual = null;
-                        List<string> printsActuales = new List<string>();
+                        List<(string Tipo, string Destino, List<string> Tokens)> accionesActuales = new List<(string, string, List<string>)>();
                         bool breakActual = false;
                         bool esDefault = false;
 
@@ -2891,8 +2935,8 @@ namespace AnalizadorLexico_LenguajeZAP
                                 if (valActual != null || esDefault)
                                 {
                                     string etq = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
-                                    casos.Add((valActual, etq, breakActual, printsActuales));
-                                    printsActuales = new List<string>();
+                                    casos.Add((valActual, etq, breakActual, accionesActuales));
+                                    accionesActuales = new List<(string, string, List<string>)>();
                                     breakActual = false;
                                 }
                                 esDefault = false;
@@ -2914,8 +2958,8 @@ namespace AnalizadorLexico_LenguajeZAP
                                 if (valActual != null || esDefault)
                                 {
                                     string etq = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
-                                    casos.Add((valActual, etq, breakActual, printsActuales));
-                                    printsActuales = new List<string>();
+                                    casos.Add((valActual, etq, breakActual, accionesActuales));
+                                    accionesActuales = new List<(string, string, List<string>)>();
                                     breakActual = false;
                                 }
                                 valActual = null;
@@ -2942,7 +2986,7 @@ namespace AnalizadorLexico_LenguajeZAP
                                 if (index < tokens.Count && tokens[index].Lexema == ";") index++;
 
                                 string contenido = string.Join(" ", printTokens);
-                                printsActuales.Add(contenido);
+                                accionesActuales.Add(("PRINT", contenido, null));
                             }
                             else if (tokens[index].Lexema == "=" || tokens[index].Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
                             {
@@ -2960,10 +3004,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
                                 if (expToks.Count > 0)
                                 {
-                                    var resComp = CompiladorExpresiones.Compilar(expToks, cuadruplos, triplos, tac);
-                                    cuadruplos.Add(new Cuadruplo("=", resComp.ResultadoCuadruplo, "-", varName));
-                                    triplos.Add(new Triplo("=", varName, resComp.ResultadoTriplo));
-                                    tac.Add($"{varName} = {resComp.ResultadoCuadruplo}");
+                                    accionesActuales.Add(("ASIG", varName, expToks));
                                 }
                             }
                             else
@@ -2975,7 +3016,7 @@ namespace AnalizadorLexico_LenguajeZAP
                         if (valActual != null || esDefault)
                         {
                             string etqFinal = esDefault ? etiquetaDefault : InstruccionP.ObtenerNuevaEtiqueta();
-                            casos.Add((valActual, etqFinal, breakActual, printsActuales));
+                            casos.Add((valActual, etqFinal, breakActual, accionesActuales));
                         }
 
                         if (index < tokens.Count && tokens[index].Lexema == "}") index++;
@@ -3002,11 +3043,25 @@ namespace AnalizadorLexico_LenguajeZAP
                             cuadruplos.Add(new Cuadruplo("LABEL", c.EtiquetaCuerpo, "-", "-"));
                             triplos.Add(new Triplo("LABEL", c.EtiquetaCuerpo, "-"));
 
-                            foreach (var p in c.ContenidoPrint)
+                            foreach (var acc in c.Acciones)
                             {
-                                cuadruplos.Add(new Cuadruplo("PRINT", p, "-", "-"));
-                                triplos.Add(new Triplo("PRINT", p, "-"));
-                                tac.Add($"print {p}");
+                                if (acc.Tipo == "PRINT")
+                                {
+                                    cuadruplos.Add(new Cuadruplo("PRINT", acc.Destino, "-", "-"));
+                                    triplos.Add(new Triplo("PRINT", acc.Destino, "-"));
+                                    tac.Add($"print {acc.Destino}");
+                                }
+                                else if (acc.Tipo == "ASIG" && acc.Tokens != null && acc.Tokens.Count > 0)
+                                {
+                                    var resComp = CompiladorExpresiones.Compilar(acc.Tokens, cuadruplos, triplos, tac);
+                                    cuadruplos.Add(new Cuadruplo("=", resComp.ResultadoCuadruplo, "-", acc.Destino));
+                                    triplos.Add(new Triplo("=", acc.Destino, resComp.ResultadoTriplo));
+                                    tac.Add($"{acc.Destino} = {resComp.ResultadoCuadruplo}");
+
+                                    List<string> tokensAsig = new List<string> { acc.Destino, "=" };
+                                    tokensAsig.AddRange(acc.Tokens);
+                                    RegistrarNotacionesEx(tokensAsig, infija, postfija, prefija);
+                                }
                             }
 
                             if (c.TieneBreak)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -71,6 +71,7 @@ namespace AnalizadorLexico_LenguajeZAP
                         case "-": codigoLocal.Add(new InstruccionP("SUB")); break;
                         case "*": codigoLocal.Add(new InstruccionP("MUL")); break;
                         case "/": codigoLocal.Add(new InstruccionP("DIV")); break;
+                        case "^": codigoLocal.Add(new InstruccionP("POW")); break;
                         case "==": codigoLocal.Add(new InstruccionP("EQ")); break;
                         case "!=": codigoLocal.Add(new InstruccionP("NE")); break;
                         case "<": codigoLocal.Add(new InstruccionP("LT")); break;
@@ -277,6 +278,7 @@ namespace AnalizadorLexico_LenguajeZAP
             if (operador == "<" || operador == ">" || operador == "<=" || operador == ">=") return 4;
             if (operador == "+" || operador == "-") return 5;
             if (operador == "*" || operador == "/") return 6;
+            if (operador == "^") return 7;
             return 0;
         }
 
@@ -287,7 +289,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var t in tokensInfijos)
             {
-                if (EsNumero(t) || t.StartsWith("$") || (t.StartsWith("\"") && t.EndsWith("\"")))
+                if (EsNumero(t) || t.StartsWith("$") || (t.StartsWith("\"") && t.EndsWith("\"")) || EsIdentificadorValido(t))
                 {
                     salida.Add(t);
                 }
@@ -295,7 +297,9 @@ namespace AnalizadorLexico_LenguajeZAP
                 {
                     while (operadores.Count > 0 &&
                            operadores.Peek() != "(" &&
-                           ObtenerPrecedencia(operadores.Peek()) >= ObtenerPrecedencia(t))
+                           (t == "^"
+                               ? ObtenerPrecedencia(operadores.Peek()) > ObtenerPrecedencia(t)
+                               : ObtenerPrecedencia(operadores.Peek()) >= ObtenerPrecedencia(t)))
                     {
                         salida.Add(operadores.Pop());
                     }
