@@ -35,11 +35,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.lblBrandTitle = new System.Windows.Forms.Label();
             this.lblBrandIcon = new System.Windows.Forms.Label();
             this.panelTopActions = new System.Windows.Forms.FlowLayoutPanel();
-            this.badgeDbStatus = new AnalizadorLexico_LenguajeZAP.StatusBadge();
-            this.btnCargarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnEditarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnGuardarArchivo = new AnalizadorLexico_LenguajeZAP.ModernButton();
-            this.btnAnalizarCodigo = new AnalizadorLexico_LenguajeZAP.ModernButton();
             this.panelBottomBar = new System.Windows.Forms.Panel();
             this.lblStatusRight = new System.Windows.Forms.Label();
             this.lblStatusLeft = new System.Windows.Forms.Label();
@@ -107,15 +102,24 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptimizacion = new System.Windows.Forms.TabPage();
             this.tabTecnicasOptimizacion = new AnalizadorLexico_LenguajeZAP.ModernTabControl();
             this.tabCostos = new System.Windows.Forms.TabPage();
+            this.dtgCostosOptimizacion = new System.Windows.Forms.DataGridView();
             this.tabOptLocal = new System.Windows.Forms.TabPage();
+            this.rtBitLocal = new System.Windows.Forms.RichTextBox();
             this.rtOptLocal = new System.Windows.Forms.RichTextBox();
             this.tabOptCiclos = new System.Windows.Forms.TabPage();
+            this.rtBitCiclos = new System.Windows.Forms.RichTextBox();
             this.rtOptCiclos = new System.Windows.Forms.RichTextBox();
             this.tabOptGlobal = new System.Windows.Forms.TabPage();
+            this.rtBitGlobal = new System.Windows.Forms.RichTextBox();
             this.rtOptGlobal = new System.Windows.Forms.RichTextBox();
             this.tabOptMirilla = new System.Windows.Forms.TabPage();
+            this.rtBitMirilla = new System.Windows.Forms.RichTextBox();
             this.rtOptMirilla = new System.Windows.Forms.RichTextBox();
-            this.dtgCostosOptimizacion = new System.Windows.Forms.DataGridView();
+            this.badgeDbStatus = new AnalizadorLexico_LenguajeZAP.StatusBadge();
+            this.btnCargarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnEditarPrograma = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnGuardarArchivo = new AnalizadorLexico_LenguajeZAP.ModernButton();
+            this.btnAnalizarCodigo = new AnalizadorLexico_LenguajeZAP.ModernButton();
             this.panelTopBar.SuspendLayout();
             this.panelBrand.SuspendLayout();
             this.panelTopActions.SuspendLayout();
@@ -148,11 +152,11 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptimizacion.SuspendLayout();
             this.tabTecnicasOptimizacion.SuspendLayout();
             this.tabCostos.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).BeginInit();
             this.tabOptLocal.SuspendLayout();
             this.tabOptCiclos.SuspendLayout();
             this.tabOptGlobal.SuspendLayout();
             this.tabOptMirilla.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).BeginInit();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -225,108 +229,6 @@ namespace AnalizadorLexico_LenguajeZAP
             this.panelTopActions.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.panelTopActions.Size = new System.Drawing.Size(884, 44);
             this.panelTopActions.TabIndex = 1;
-            // 
-            // badgeDbStatus
-            // 
-            this.badgeDbStatus.BadgeBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(78)))), ((int)(((byte)(59)))));
-            this.badgeDbStatus.BadgeTextColor = System.Drawing.Color.FromArgb(((int)(((byte)(167)))), ((int)(((byte)(243)))), ((int)(((byte)(208)))));
-            this.badgeDbStatus.DotColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(211)))), ((int)(((byte)(153)))));
-            this.badgeDbStatus.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F);
-            this.badgeDbStatus.Location = new System.Drawing.Point(3, 8);
-            this.badgeDbStatus.Margin = new System.Windows.Forms.Padding(3, 8, 12, 3);
-            this.badgeDbStatus.Name = "badgeDbStatus";
-            this.badgeDbStatus.Size = new System.Drawing.Size(125, 28);
-            this.badgeDbStatus.TabIndex = 4;
-            this.badgeDbStatus.Text = "BD Conectada";
-            this.badgeDbStatus.Visible = false;
-            // 
-            // btnCargarPrograma
-            // 
-            this.btnCargarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnCargarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
-            this.btnCargarPrograma.BorderRadius = 6;
-            this.btnCargarPrograma.BorderSize = 1;
-            this.btnCargarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnCargarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnCargarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCargarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnCargarPrograma.ForeColor = System.Drawing.Color.White;
-            this.btnCargarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
-            this.btnCargarPrograma.Location = new System.Drawing.Point(143, 2);
-            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
-            this.btnCargarPrograma.Name = "btnCargarPrograma";
-            this.btnCargarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
-            this.btnCargarPrograma.Size = new System.Drawing.Size(135, 40);
-            this.btnCargarPrograma.TabIndex = 0;
-            this.btnCargarPrograma.Text = "Abrir (.zap)";
-            this.btnCargarPrograma.UseVisualStyleBackColor = true;
-            this.btnCargarPrograma.Click += new System.EventHandler(this.btnCargarPrograma_Click);
-            // 
-            // btnEditarPrograma
-            // 
-            this.btnEditarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnEditarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
-            this.btnEditarPrograma.BorderRadius = 6;
-            this.btnEditarPrograma.BorderSize = 1;
-            this.btnEditarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnEditarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
-            this.btnEditarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnEditarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnEditarPrograma.ForeColor = System.Drawing.Color.White;
-            this.btnEditarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
-            this.btnEditarPrograma.Location = new System.Drawing.Point(287, 2);
-            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
-            this.btnEditarPrograma.Name = "btnEditarPrograma";
-            this.btnEditarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
-            this.btnEditarPrograma.Size = new System.Drawing.Size(125, 40);
-            this.btnEditarPrograma.TabIndex = 1;
-            this.btnEditarPrograma.Text = "Editar Código";
-            this.btnEditarPrograma.UseVisualStyleBackColor = true;
-            this.btnEditarPrograma.Click += new System.EventHandler(this.btnEditarPrograma_Click);
-            // 
-            // btnGuardarArchivo
-            // 
-            this.btnGuardarArchivo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
-            this.btnGuardarArchivo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
-            this.btnGuardarArchivo.BorderRadius = 6;
-            this.btnGuardarArchivo.BorderSize = 1;
-            this.btnGuardarArchivo.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnGuardarArchivo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
-            this.btnGuardarArchivo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnGuardarArchivo.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
-            this.btnGuardarArchivo.ForeColor = System.Drawing.Color.White;
-            this.btnGuardarArchivo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
-            this.btnGuardarArchivo.Location = new System.Drawing.Point(421, 2);
-            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(3, 2, 8, 2);
-            this.btnGuardarArchivo.Name = "btnGuardarArchivo";
-            this.btnGuardarArchivo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(120)))), ((int)(((byte)(87)))));
-            this.btnGuardarArchivo.Size = new System.Drawing.Size(140, 40);
-            this.btnGuardarArchivo.TabIndex = 2;
-            this.btnGuardarArchivo.Text = "Guardar (.zap)";
-            this.btnGuardarArchivo.UseVisualStyleBackColor = true;
-            this.btnGuardarArchivo.Click += new System.EventHandler(this.btnGuardarArchivo_Click);
-            // 
-            // btnAnalizarCodigo
-            // 
-            this.btnAnalizarCodigo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
-            this.btnAnalizarCodigo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(96)))), ((int)(((byte)(165)))), ((int)(((byte)(250)))));
-            this.btnAnalizarCodigo.BorderRadius = 6;
-            this.btnAnalizarCodigo.BorderSize = 1;
-            this.btnAnalizarCodigo.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnAnalizarCodigo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
-            this.btnAnalizarCodigo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnAnalizarCodigo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
-            this.btnAnalizarCodigo.ForeColor = System.Drawing.Color.White;
-            this.btnAnalizarCodigo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(130)))), ((int)(((byte)(246)))));
-            this.btnAnalizarCodigo.Location = new System.Drawing.Point(572, 2);
-            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
-            this.btnAnalizarCodigo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(29)))), ((int)(((byte)(78)))), ((int)(((byte)(216)))));
-            this.btnAnalizarCodigo.Size = new System.Drawing.Size(195, 40);
-            this.btnAnalizarCodigo.TabIndex = 3;
-            this.btnAnalizarCodigo.Text = "▶  Compilar y Analizar";
-            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
-            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
             // 
             // panelBottomBar
             // 
@@ -487,10 +389,11 @@ namespace AnalizadorLexico_LenguajeZAP
             this.lblPipelineContent.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(148)))), ((int)(((byte)(163)))), ((int)(((byte)(184)))));
             this.lblPipelineContent.Location = new System.Drawing.Point(16, 352);
             this.lblPipelineContent.Name = "lblPipelineContent";
-            this.lblPipelineContent.Size = new System.Drawing.Size(268, 70);
+            this.lblPipelineContent.Size = new System.Drawing.Size(268, 73);
             this.lblPipelineContent.TabIndex = 8;
             this.lblPipelineContent.Text = "✔ 1. Análisis Léxico (Matriz SQL)\r\n✔ 2. Análisis Sintáctico (Pushdown)\r\n✔ 3. Anál" +
-    "isis Semántico (Scope & Tipos)\r\n✔ 4. Código Intermedio (Máquina P)";
+    "isis Semántico (Scope & Tipos)\r\n✔ 4. Código Intermedio (Máquina P)\r\n✔ 5. Optimiz" +
+    "acion de Codigo\r\n";
             // 
             // panelDivider3
             // 
@@ -1126,8 +1029,17 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabCostos.Text = "Costos";
             this.tabCostos.UseVisualStyleBackColor = true;
             // 
+            // dtgCostosOptimizacion
+            // 
+            this.dtgCostosOptimizacion.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dtgCostosOptimizacion.Location = new System.Drawing.Point(6, 3);
+            this.dtgCostosOptimizacion.Name = "dtgCostosOptimizacion";
+            this.dtgCostosOptimizacion.Size = new System.Drawing.Size(996, 569);
+            this.dtgCostosOptimizacion.TabIndex = 0;
+            // 
             // tabOptLocal
             // 
+            this.tabOptLocal.Controls.Add(this.rtBitLocal);
             this.tabOptLocal.Controls.Add(this.rtOptLocal);
             this.tabOptLocal.Location = new System.Drawing.Point(4, 48);
             this.tabOptLocal.Name = "tabOptLocal";
@@ -1137,16 +1049,25 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptLocal.Text = "Local";
             this.tabOptLocal.UseVisualStyleBackColor = true;
             // 
+            // rtBitLocal
+            // 
+            this.rtBitLocal.Location = new System.Drawing.Point(484, 6);
+            this.rtBitLocal.Name = "rtBitLocal";
+            this.rtBitLocal.Size = new System.Drawing.Size(513, 572);
+            this.rtBitLocal.TabIndex = 1;
+            this.rtBitLocal.Text = "";
+            // 
             // rtOptLocal
             // 
             this.rtOptLocal.Location = new System.Drawing.Point(3, 3);
             this.rtOptLocal.Name = "rtOptLocal";
-            this.rtOptLocal.Size = new System.Drawing.Size(999, 572);
+            this.rtOptLocal.Size = new System.Drawing.Size(475, 572);
             this.rtOptLocal.TabIndex = 0;
             this.rtOptLocal.Text = "";
             // 
             // tabOptCiclos
             // 
+            this.tabOptCiclos.Controls.Add(this.rtBitCiclos);
             this.tabOptCiclos.Controls.Add(this.rtOptCiclos);
             this.tabOptCiclos.Location = new System.Drawing.Point(4, 48);
             this.tabOptCiclos.Name = "tabOptCiclos";
@@ -1155,16 +1076,25 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptCiclos.Text = "Ciclos";
             this.tabOptCiclos.UseVisualStyleBackColor = true;
             // 
+            // rtBitCiclos
+            // 
+            this.rtBitCiclos.Location = new System.Drawing.Point(500, 3);
+            this.rtBitCiclos.Name = "rtBitCiclos";
+            this.rtBitCiclos.Size = new System.Drawing.Size(505, 572);
+            this.rtBitCiclos.TabIndex = 1;
+            this.rtBitCiclos.Text = "";
+            // 
             // rtOptCiclos
             // 
             this.rtOptCiclos.Location = new System.Drawing.Point(3, 3);
             this.rtOptCiclos.Name = "rtOptCiclos";
-            this.rtOptCiclos.Size = new System.Drawing.Size(1002, 572);
+            this.rtOptCiclos.Size = new System.Drawing.Size(477, 572);
             this.rtOptCiclos.TabIndex = 0;
             this.rtOptCiclos.Text = "";
             // 
             // tabOptGlobal
             // 
+            this.tabOptGlobal.Controls.Add(this.rtBitGlobal);
             this.tabOptGlobal.Controls.Add(this.rtOptGlobal);
             this.tabOptGlobal.Location = new System.Drawing.Point(4, 48);
             this.tabOptGlobal.Name = "tabOptGlobal";
@@ -1173,16 +1103,25 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptGlobal.Text = "Global";
             this.tabOptGlobal.UseVisualStyleBackColor = true;
             // 
+            // rtBitGlobal
+            // 
+            this.rtBitGlobal.Location = new System.Drawing.Point(498, 3);
+            this.rtBitGlobal.Name = "rtBitGlobal";
+            this.rtBitGlobal.Size = new System.Drawing.Size(507, 572);
+            this.rtBitGlobal.TabIndex = 3;
+            this.rtBitGlobal.Text = "";
+            // 
             // rtOptGlobal
             // 
             this.rtOptGlobal.Location = new System.Drawing.Point(0, 3);
             this.rtOptGlobal.Name = "rtOptGlobal";
-            this.rtOptGlobal.Size = new System.Drawing.Size(1005, 572);
+            this.rtOptGlobal.Size = new System.Drawing.Size(492, 572);
             this.rtOptGlobal.TabIndex = 2;
             this.rtOptGlobal.Text = "";
             // 
             // tabOptMirilla
             // 
+            this.tabOptMirilla.Controls.Add(this.rtBitMirilla);
             this.tabOptMirilla.Controls.Add(this.rtOptMirilla);
             this.tabOptMirilla.Location = new System.Drawing.Point(4, 48);
             this.tabOptMirilla.Name = "tabOptMirilla";
@@ -1191,21 +1130,123 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptMirilla.Text = "Mirilla";
             this.tabOptMirilla.UseVisualStyleBackColor = true;
             // 
+            // rtBitMirilla
+            // 
+            this.rtBitMirilla.Location = new System.Drawing.Point(491, 3);
+            this.rtBitMirilla.Name = "rtBitMirilla";
+            this.rtBitMirilla.Size = new System.Drawing.Size(514, 572);
+            this.rtBitMirilla.TabIndex = 3;
+            this.rtBitMirilla.Text = "";
+            // 
             // rtOptMirilla
             // 
             this.rtOptMirilla.Location = new System.Drawing.Point(3, 3);
             this.rtOptMirilla.Name = "rtOptMirilla";
-            this.rtOptMirilla.Size = new System.Drawing.Size(1002, 572);
+            this.rtOptMirilla.Size = new System.Drawing.Size(482, 572);
             this.rtOptMirilla.TabIndex = 2;
             this.rtOptMirilla.Text = "";
             // 
-            // dtgCostosOptimizacion
+            // badgeDbStatus
             // 
-            this.dtgCostosOptimizacion.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dtgCostosOptimizacion.Location = new System.Drawing.Point(6, 3);
-            this.dtgCostosOptimizacion.Name = "dtgCostosOptimizacion";
-            this.dtgCostosOptimizacion.Size = new System.Drawing.Size(996, 569);
-            this.dtgCostosOptimizacion.TabIndex = 0;
+            this.badgeDbStatus.BadgeBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(78)))), ((int)(((byte)(59)))));
+            this.badgeDbStatus.BadgeTextColor = System.Drawing.Color.FromArgb(((int)(((byte)(167)))), ((int)(((byte)(243)))), ((int)(((byte)(208)))));
+            this.badgeDbStatus.DotColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(211)))), ((int)(((byte)(153)))));
+            this.badgeDbStatus.Font = new System.Drawing.Font("Segoe UI Semibold", 8.5F);
+            this.badgeDbStatus.Location = new System.Drawing.Point(3, 8);
+            this.badgeDbStatus.Margin = new System.Windows.Forms.Padding(3, 8, 12, 3);
+            this.badgeDbStatus.Name = "badgeDbStatus";
+            this.badgeDbStatus.Size = new System.Drawing.Size(125, 28);
+            this.badgeDbStatus.TabIndex = 4;
+            this.badgeDbStatus.Text = "BD Conectada";
+            this.badgeDbStatus.Visible = false;
+            // 
+            // btnCargarPrograma
+            // 
+            this.btnCargarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnCargarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.btnCargarPrograma.BorderRadius = 6;
+            this.btnCargarPrograma.BorderSize = 1;
+            this.btnCargarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnCargarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnCargarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCargarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnCargarPrograma.ForeColor = System.Drawing.Color.White;
+            this.btnCargarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnCargarPrograma.Location = new System.Drawing.Point(143, 2);
+            this.btnCargarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
+            this.btnCargarPrograma.Name = "btnCargarPrograma";
+            this.btnCargarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.btnCargarPrograma.Size = new System.Drawing.Size(135, 40);
+            this.btnCargarPrograma.TabIndex = 0;
+            this.btnCargarPrograma.Text = "Abrir (.zap)";
+            this.btnCargarPrograma.UseVisualStyleBackColor = true;
+            this.btnCargarPrograma.Click += new System.EventHandler(this.btnCargarPrograma_Click);
+            // 
+            // btnEditarPrograma
+            // 
+            this.btnEditarPrograma.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnEditarPrograma.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.btnEditarPrograma.BorderRadius = 6;
+            this.btnEditarPrograma.BorderSize = 1;
+            this.btnEditarPrograma.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnEditarPrograma.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.btnEditarPrograma.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnEditarPrograma.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnEditarPrograma.ForeColor = System.Drawing.Color.White;
+            this.btnEditarPrograma.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
+            this.btnEditarPrograma.Location = new System.Drawing.Point(287, 2);
+            this.btnEditarPrograma.Margin = new System.Windows.Forms.Padding(3, 2, 6, 2);
+            this.btnEditarPrograma.Name = "btnEditarPrograma";
+            this.btnEditarPrograma.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.btnEditarPrograma.Size = new System.Drawing.Size(125, 40);
+            this.btnEditarPrograma.TabIndex = 1;
+            this.btnEditarPrograma.Text = "Editar Código";
+            this.btnEditarPrograma.UseVisualStyleBackColor = true;
+            this.btnEditarPrograma.Click += new System.EventHandler(this.btnEditarPrograma_Click);
+            // 
+            // btnGuardarArchivo
+            // 
+            this.btnGuardarArchivo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
+            this.btnGuardarArchivo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
+            this.btnGuardarArchivo.BorderRadius = 6;
+            this.btnGuardarArchivo.BorderSize = 1;
+            this.btnGuardarArchivo.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnGuardarArchivo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(5)))), ((int)(((byte)(150)))), ((int)(((byte)(105)))));
+            this.btnGuardarArchivo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnGuardarArchivo.Font = new System.Drawing.Font("Segoe UI Semibold", 9F);
+            this.btnGuardarArchivo.ForeColor = System.Drawing.Color.White;
+            this.btnGuardarArchivo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
+            this.btnGuardarArchivo.Location = new System.Drawing.Point(421, 2);
+            this.btnGuardarArchivo.Margin = new System.Windows.Forms.Padding(3, 2, 8, 2);
+            this.btnGuardarArchivo.Name = "btnGuardarArchivo";
+            this.btnGuardarArchivo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(120)))), ((int)(((byte)(87)))));
+            this.btnGuardarArchivo.Size = new System.Drawing.Size(140, 40);
+            this.btnGuardarArchivo.TabIndex = 2;
+            this.btnGuardarArchivo.Text = "Guardar (.zap)";
+            this.btnGuardarArchivo.UseVisualStyleBackColor = true;
+            this.btnGuardarArchivo.Click += new System.EventHandler(this.btnGuardarArchivo_Click);
+            // 
+            // btnAnalizarCodigo
+            // 
+            this.btnAnalizarCodigo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
+            this.btnAnalizarCodigo.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(96)))), ((int)(((byte)(165)))), ((int)(((byte)(250)))));
+            this.btnAnalizarCodigo.BorderRadius = 6;
+            this.btnAnalizarCodigo.BorderSize = 1;
+            this.btnAnalizarCodigo.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAnalizarCodigo.CustomBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(99)))), ((int)(((byte)(235)))));
+            this.btnAnalizarCodigo.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAnalizarCodigo.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Bold);
+            this.btnAnalizarCodigo.ForeColor = System.Drawing.Color.White;
+            this.btnAnalizarCodigo.HoverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(59)))), ((int)(((byte)(130)))), ((int)(((byte)(246)))));
+            this.btnAnalizarCodigo.Location = new System.Drawing.Point(572, 2);
+            this.btnAnalizarCodigo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnAnalizarCodigo.Name = "btnAnalizarCodigo";
+            this.btnAnalizarCodigo.PressedBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(29)))), ((int)(((byte)(78)))), ((int)(((byte)(216)))));
+            this.btnAnalizarCodigo.Size = new System.Drawing.Size(195, 40);
+            this.btnAnalizarCodigo.TabIndex = 3;
+            this.btnAnalizarCodigo.Text = "▶  Compilar y Analizar";
+            this.btnAnalizarCodigo.UseVisualStyleBackColor = true;
+            this.btnAnalizarCodigo.Click += new System.EventHandler(this.btnAnalizarCodigo_Click);
             // 
             // Form1
             // 
@@ -1259,11 +1300,11 @@ namespace AnalizadorLexico_LenguajeZAP
             this.tabOptimizacion.ResumeLayout(false);
             this.tabTecnicasOptimizacion.ResumeLayout(false);
             this.tabCostos.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).EndInit();
             this.tabOptLocal.ResumeLayout(false);
             this.tabOptCiclos.ResumeLayout(false);
             this.tabOptGlobal.ResumeLayout(false);
             this.tabOptMirilla.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dtgCostosOptimizacion)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -1371,5 +1412,9 @@ namespace AnalizadorLexico_LenguajeZAP
         private System.Windows.Forms.RichTextBox rtOptGlobal;
         private System.Windows.Forms.RichTextBox rtOptMirilla;
         private System.Windows.Forms.DataGridView dtgCostosOptimizacion;
+        private System.Windows.Forms.RichTextBox rtBitLocal;
+        private System.Windows.Forms.RichTextBox rtBitCiclos;
+        private System.Windows.Forms.RichTextBox rtBitGlobal;
+        private System.Windows.Forms.RichTextBox rtBitMirilla;
     }
 }

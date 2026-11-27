@@ -2365,9 +2365,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
                     string.Join(Environment.NewLine, tacLocal.Select(x => x.ToString())) +
                     $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, pLocal.Select(x => x.ToString())) +
-                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, bitacoraLocal);
+                    string.Join(Environment.NewLine, pLocal.Select(x => x.ToString()));
             }
 
             if (rtOptCiclos != null)
@@ -2376,9 +2374,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
                     string.Join(Environment.NewLine, tacCiclos.Select(x => x.ToString())) +
                     $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, pCiclos.Select(x => x.ToString())) +
-                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, bitacoraCiclos);
+                    string.Join(Environment.NewLine, pCiclos.Select(x => x.ToString()));
             }
 
             if (rtOptGlobal != null)
@@ -2387,9 +2383,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
                     string.Join(Environment.NewLine, tacGlobal.Select(x => x.ToString())) +
                     $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, pGlobal.Select(x => x.ToString())) +
-                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, bitacoraGlobal);
+                    string.Join(Environment.NewLine, pGlobal.Select(x => x.ToString()));
             }
 
             if (rtOptMirilla != null)
@@ -2398,8 +2392,30 @@ namespace AnalizadorLexico_LenguajeZAP
                     $"--- TAC OPTIMIZADO ---{Environment.NewLine}" +
                     string.Join(Environment.NewLine, tacMirilla.Select(x => x.ToString())) +
                     $"{Environment.NewLine}{Environment.NewLine}--- CÓDIGO P OPTIMIZADO ---{Environment.NewLine}" +
-                    string.Join(Environment.NewLine, pMirilla.Select(x => x.ToString())) +
-                    $"{Environment.NewLine}{Environment.NewLine}--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, pMirilla.Select(x => x.ToString()));
+            }
+
+            if (rtBitLocal != null)
+            {
+                rtBitLocal.Text = $"--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraLocal); 
+            }
+
+            if (rtBitCiclos != null)
+            {
+                rtBitCiclos.Text = $"--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraCiclos);
+            }
+
+            if (rtBitGlobal != null)
+            {
+                rtBitGlobal.Text = $"--- BITÁCORA ---{Environment.NewLine}" +
+                    string.Join(Environment.NewLine, bitacoraGlobal);
+            }
+
+            if (rtBitMirilla != null)
+            {
+                rtBitMirilla.Text = $"--- BITÁCORA ---{Environment.NewLine}" +
                     string.Join(Environment.NewLine, bitacoraMirilla);
             }
 
