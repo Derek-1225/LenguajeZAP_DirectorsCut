@@ -40,6 +40,14 @@ namespace AnalizadorLexico_LenguajeZAP
 
         //Aqui se crea la tabla de simbolos y se inicializa
         private Dictionary<string, Simbolo> tablaSimbolos = new Dictionary<string, Simbolo>();
+        public class FuncionInfo
+        {
+            public string Nombre { get; set; }
+            public string TipoRetorno { get; set; }
+            public List<(string Nombre, string Tipo)> Parametros { get; set; } = new List<(string, string)>();
+            public int Linea { get; set; }
+        }
+        private Dictionary<string, FuncionInfo> tablaFunciones = new Dictionary<string, FuncionInfo>(StringComparer.OrdinalIgnoreCase);
         private int contadorID = 1;
 
         private int offsetGlobal = 0;
@@ -474,6 +482,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             dtgTablaSimbolos.Rows.Clear();
             tablaSimbolos.Clear();
+            tablaFunciones.Clear();
             listaTokensCompletos.Clear();
             tablaTiposVariables.Clear();
             contadorID = 1;
@@ -1054,6 +1063,7 @@ namespace AnalizadorLexico_LenguajeZAP
             int nivelBloque = 0;
             offsetGlobal = 0;
             offsetLocal = 0;
+            tablaFunciones.Clear();
 
             Stack<HashSet<string>> ambitos = new Stack<HashSet<string>>();
             ambitos.Push(new HashSet<string>());
@@ -1063,41 +1073,265 @@ namespace AnalizadorLexico_LenguajeZAP
 
             EvaluarValoresVariables();
 
+            // Pasada previa: registrar firmas de funciones (function <tipo|void> <$nombre>(<params>))
+            HashSet<int> indicesCabeceraFuncion = new HashSet<int>();
+            Dictionary<int, string> inicioFuncionPorIndice = new Dictionary<int, string>();
+
+            for (int k = 0; k < listaTokensCompletos.Count; k++)
+            {
+                var tok = listaTokensCompletos[k];
+                if (tok.Token == "PR15" || tok.Lexema.Equals("function", StringComparison.OrdinalIgnoreCase))
+                {
+                    indicesCabeceraFuncion.Add(k);
+                    if (k + 2 < listaTokensCompletos.Count)
+                    {
+                        var tokTipoRet = listaTokensCompletos[k + 1];
+                        var tokNombre = listaTokensCompletos[k + 2];
+                        indicesCabeceraFuncion.Add(k + 1);
+                        indicesCabeceraFuncion.Add(k + 2);
+
+                        string tipoRet = NormalizarTipo(tokTipoRet.Lexema, tokTipoRet.Token);
+                        string nombreFunc = tokNombre.Lexema;
+                        var parametros = new List<(string Nombre, string Tipo)>();
+                        var nombresParamSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                        int p = k + 3;
+                        if (p < listaTokensCompletos.Count && listaTokensCompletos[p].Lexema == "(")
+                        {
+                            indicesCabeceraFuncion.Add(p);
+                            p++;
+                            while (p < listaTokensCompletos.Count && listaTokensCompletos[p].Lexema != ")")
+                            {
+                                indicesCabeceraFuncion.Add(p);
+                                var tParam = listaTokensCompletos[p];
+                                if (EsTokenTipoDato(tParam.Lexema, tParam.Token) && p + 1 < listaTokensCompletos.Count)
+                                {
+                                    var tNomParam = listaTokensCompletos[p + 1];
+                                    if (tNomParam.Token.StartsWith("IDEN") || tNomParam.Lexema.StartsWith("$"))
+                                    {
+                                        indicesCabeceraFuncion.Add(p + 1);
+                                        string tipoP = NormalizarTipo(tParam.Lexema, tParam.Token);
+                                        string nomP = tNomParam.Lexema;
+
+                                        if (!nombresParamSet.Add(nomP))
+                                        {
+                                            ImprimirErrorSemantico(tNomParam.Linea, $"Error Semántico: El parámetro '{nomP}' está duplicado en la función '{nombreFunc}'.");
+                                            erroresSemanticos++;
+                                        }
+                                        else
+                                        {
+                                            parametros.Add((nomP, tipoP));
+                                        }
+                                        p++;
+                                    }
+                                }
+                                p++;
+                            }
+                            if (p < listaTokensCompletos.Count && listaTokensCompletos[p].Lexema == ")")
+                            {
+                                indicesCabeceraFuncion.Add(p);
+                            }
+                        }
+
+                        if (tablaFunciones.ContainsKey(nombreFunc))
+                        {
+                            ImprimirErrorSemantico(tok.Linea, $"Error Semántico: La función '{nombreFunc}' ya fue declarada previamente.");
+                            erroresSemanticos++;
+                        }
+                        else
+                        {
+                            tablaFunciones[nombreFunc] = new FuncionInfo
+                            {
+                                Nombre = nombreFunc,
+                                TipoRetorno = tipoRet,
+                                Parametros = parametros,
+                                Linea = tok.Linea
+                            };
+                            inicioFuncionPorIndice[k] = nombreFunc;
+
+                            if (tablaSimbolos.ContainsKey(nombreFunc))
+                            {
+                                Simbolo simFunc = tablaSimbolos[nombreFunc];
+                                simFunc.TipoDato = $"function ({tipoRet})";
+                                simFunc.Scope = "Función";
+                                simFunc.Tamano = ObtenerTamanoBytes(tipoRet);
+                                simFunc.Direccion = 0;
+                                simFunc.EstaInicializada = true;
+                                simFunc.Valor = $"({string.Join(", ", parametros.Select(pr => $"{pr.Tipo} {pr.Nombre}"))})";
+                            }
+                        }
+                    }
+                }
+            }
+
+            string funcionActual = null;
+            int nivelLlaveFuncion = -1;
+            bool funcionActualTieneReturn = false;
+            FuncionInfo funcionPendienteBloque = null;
+
             for (int i = 0; i < listaTokensCompletos.Count; i++)
             {
                 var actual = listaTokensCompletos[i];
+
+                if (actual.Token == "PR15" || actual.Lexema.Equals("function", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (inicioFuncionPorIndice.TryGetValue(i, out string fName) && tablaFunciones.TryGetValue(fName, out var fPend))
+                    {
+                        funcionPendienteBloque = fPend;
+                    }
+                    continue;
+                }
 
                 if (actual.Lexema == "{")
                 {
                     nivelBloque++;
                     ambitos.Push(new HashSet<string>());
+
+                    if (funcionPendienteBloque != null)
+                    {
+                        funcionActual = funcionPendienteBloque.Nombre;
+                        nivelLlaveFuncion = nivelBloque;
+                        funcionActualTieneReturn = false;
+
+                        foreach (var param in funcionPendienteBloque.Parametros)
+                        {
+                            ambitos.Peek().Add(param.Nombre);
+                            if (tablaSimbolos.ContainsKey(param.Nombre))
+                            {
+                                Simbolo simP = tablaSimbolos[param.Nombre];
+                                simP.TipoDato = param.Tipo;
+                                simP.Scope = $"Parámetro ({funcionActual})";
+                                int bytesP = ObtenerTamanoBytes(param.Tipo);
+                                simP.Tamano = bytesP;
+                                simP.Direccion = offsetLocal;
+                                offsetLocal += bytesP;
+                                simP.EstaInicializada = true;
+                            }
+                        }
+                        funcionPendienteBloque = null;
+                    }
                 }
                 else if (actual.Lexema == "}")
                 {
+                    if (funcionActual != null && nivelBloque == nivelLlaveFuncion)
+                    {
+                        if (tablaFunciones.TryGetValue(funcionActual, out var fInfo) &&
+                            fInfo.TipoRetorno != "void" && !funcionActualTieneReturn)
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La función '{funcionActual}' de tipo '{fInfo.TipoRetorno}' debe incluir una sentencia 'return'.");
+                            erroresSemanticos++;
+                        }
+                        funcionActual = null;
+                        nivelLlaveFuncion = -1;
+                        funcionActualTieneReturn = false;
+                    }
+
                     if (nivelBloque > 0) nivelBloque--;
                     if (ambitos.Count > 1) ambitos.Pop();
                 }
 
+                if (indicesCabeceraFuncion.Contains(i))
+                {
+                    continue;
+                }
+
                 string lexemaMin = actual.Lexema.ToLower();
-                bool esDeclaracion = actual.Token == "PR19" || actual.Token == "PR28" || actual.Token == "PR02" || actual.Token == "PRO2" ||
-                                     actual.Token == "PR11" || actual.Token == "PR13" || actual.Token == "PR03" || actual.Token == "PRO3" ||
-                                     lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "double" ||
-                                     lexemaMin == "string" || lexemaMin == "char" || lexemaMin == "bool" || lexemaMin == "boolean";
+
+                if (actual.Token == "PR25" || lexemaMin == "return")
+                {
+                    var retTokens = new List<(string Lexema, string Token)>();
+                    int pRet = 0;
+                    for (int j = i + 1; j < listaTokensCompletos.Count; j++)
+                    {
+                        string lx = listaTokensCompletos[j].Lexema;
+                        if (lx == "(") pRet++;
+                        else if (lx == ")") pRet--;
+                        if (lx == ";" && pRet <= 0) break;
+                        retTokens.Add((lx, listaTokensCompletos[j].Token));
+                    }
+
+                    if (funcionActual == null)
+                    {
+                        ImprimirErrorSemantico(actual.Linea, "Error Semántico: La instrucción 'return' solo puede utilizarse dentro de una función.");
+                        erroresSemanticos++;
+                    }
+                    else
+                    {
+                        funcionActualTieneReturn = true;
+                        string tipoRetEsp = tablaFunciones.TryGetValue(funcionActual, out var fi) ? fi.TipoRetorno : "void";
+
+                        if (tipoRetEsp == "void" && retTokens.Count > 0)
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La función 'void' '{funcionActual}' no puede retornar un valor.");
+                            erroresSemanticos++;
+                        }
+                        else if (tipoRetEsp != "void" && retTokens.Count == 0)
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La función '{funcionActual}' de tipo '{tipoRetEsp}' debe retornar un valor.");
+                            erroresSemanticos++;
+                        }
+                        else if (tipoRetEsp != "void" && retTokens.Count > 0)
+                        {
+                            if (!EsExpresionCompatibleConTipo(tipoRetEsp, retTokens))
+                            {
+                                string tipoRetRecibido = InferirTipoExpresion(retTokens);
+                                ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La función '{funcionActual}' debe retornar '{tipoRetEsp}', pero se intenta retornar '{tipoRetRecibido}'.");
+                                erroresSemanticos++;
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                if ((actual.Token == "PR26" || lexemaMin == "run") && i + 1 < listaTokensCompletos.Count)
+                {
+                    var tokTarget = listaTokensCompletos[i + 1];
+                    string targetMin = tokTarget.Lexema.ToLower();
+                    if (tokTarget.Token != "PR05" && tokTarget.Token != "PR06" && targetMin != "clear" && targetMin != "color")
+                    {
+                        if (!tablaFunciones.TryGetValue(tokTarget.Lexema, out FuncionInfo funcDef))
+                        {
+                            ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La función '{tokTarget.Lexema}' no ha sido declarada.");
+                            erroresSemanticos++;
+                        }
+                        else
+                        {
+                            var argsTokens = ExtraerArgumentosLlamadaSemantico(i + 2);
+                            if (argsTokens.Count != funcDef.Parametros.Count)
+                            {
+                                ImprimirErrorSemantico(actual.Linea, $"Error Semántico: La función '{funcDef.Nombre}' espera {funcDef.Parametros.Count} argumento(s), pero recibió {argsTokens.Count}.");
+                                erroresSemanticos++;
+                            }
+                            else
+                            {
+                                for (int idxArg = 0; idxArg < argsTokens.Count; idxArg++)
+                                {
+                                    string tipoParam = funcDef.Parametros[idxArg].Tipo;
+                                    if (!EsExpresionCompatibleConTipo(tipoParam, argsTokens[idxArg]))
+                                    {
+                                        string tipoArg = InferirTipoExpresion(argsTokens[idxArg]);
+                                        ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: El argumento {idxArg + 1} de '{funcDef.Nombre}' debe ser de tipo '{tipoParam}', pero se envió '{tipoArg}'.");
+                                        erroresSemanticos++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                bool esDeclaracion = EsTokenTipoDato(actual.Lexema, actual.Token);
 
                 bool esVariableEnDeclaracion = false;
                 if (i > 0)
                 {
                     var anterior = listaTokensCompletos[i - 1];
-                    string antMin = anterior.Lexema.ToLower();
-                    if (anterior.Token == "PR19" || anterior.Token == "PR28" || anterior.Token == "PR02" || anterior.Token == "PRO2" ||
-                        anterior.Token == "PR11" || anterior.Token == "PR13" || anterior.Token == "PR03" || anterior.Token == "PRO3" ||
-                        antMin == "int" || antMin == "float" || antMin == "double" || antMin == "string" || antMin == "char" || antMin == "bool" || antMin == "boolean")
+                    if (EsTokenTipoDato(anterior.Lexema, anterior.Token))
                     {
                         esVariableEnDeclaracion = true;
                     }
                 }
 
-                if (esDeclaracion && i + 1 < listaTokensCompletos.Count)
+                if (esDeclaracion && i + 1 < listaTokensCompletos.Count && !indicesCabeceraFuncion.Contains(i + 1))
                 {
                     var siguiente = listaTokensCompletos[i + 1];
 
@@ -1279,7 +1513,8 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                 }
 
-                if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion && !esVariableEnDeclaracion)
+                bool esNombreFuncionEnLlamada = i > 0 && (listaTokensCompletos[i - 1].Token == "PR26" || listaTokensCompletos[i - 1].Lexema.Equals("run", StringComparison.OrdinalIgnoreCase));
+                if ((actual.Token.StartsWith("IDEN") || actual.Lexema.StartsWith("$")) && !esDeclaracion && !esVariableEnDeclaracion && !esNombreFuncionEnLlamada)
                 {
                     bool estaEnAlcance = false;
                     foreach (var scope in ambitos)
@@ -1330,10 +1565,34 @@ namespace AnalizadorLexico_LenguajeZAP
                         string tipoVariable = sim.TipoDato;
 
                         List<(string Lexema, string Token)> expTokens = new List<(string, string)>();
+                        int parenDepthAsig = 0;
                         for (int j = i + 1; j < listaTokensCompletos.Count; j++)
                         {
-                            if (listaTokensCompletos[j].Lexema == ";" || listaTokensCompletos[j].Lexema == ",") break;
-                            expTokens.Add((listaTokensCompletos[j].Lexema, listaTokensCompletos[j].Token));
+                            string lxJ = listaTokensCompletos[j].Lexema;
+                            if (lxJ == "(") parenDepthAsig++;
+                            else if (lxJ == ")" && parenDepthAsig > 0) parenDepthAsig--;
+
+                            if (lxJ == ";" || (lxJ == "," && parenDepthAsig == 0)) break;
+                            expTokens.Add((lxJ, listaTokensCompletos[j].Token));
+                        }
+
+                        if (expTokens.Count >= 2 && (expTokens[0].Token == "PR26" || expTokens[0].Lexema.Equals("run", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            string nombreFuncAsig = expTokens[1].Lexema;
+                            if (tablaFunciones.TryGetValue(nombreFuncAsig, out FuncionInfo funcLlamada))
+                            {
+                                if (funcLlamada.TipoRetorno == "void")
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: No se puede asignar el resultado de la función 'void' '{funcLlamada.Nombre}' a '{varAsignada.Lexema}'.");
+                                    erroresSemanticos++;
+                                }
+                                else if (!EsTipoCompatible(NormalizarTipo(tipoVariable, ""), funcLlamada.TipoRetorno))
+                                {
+                                    ImprimirErrorSemantico(actual.Linea, $"Error de Tipo: La función '{funcLlamada.Nombre}' retorna '{funcLlamada.TipoRetorno}', incompatible con '{varAsignada.Lexema}' ({NormalizarTipo(tipoVariable, "")}).");
+                                    erroresSemanticos++;
+                                }
+                            }
+                            continue;
                         }
 
 
@@ -1571,12 +1830,127 @@ namespace AnalizadorLexico_LenguajeZAP
 
         private string NormalizarTipo(string lexema, string token)
         {
-            if (token == "PR19" || lexema == "int") return "int";
-            if (token == "PR28" || lexema == "string") return "string";
-            if (token == "PR02" || token == "PRO2" || lexema == "boolean" || lexema == "bool") return "boolean";
-            if (token == "PR11" || token == "PR13" || lexema == "float" || lexema == "double") return "float";
-            if (token == "PR03" || token == "PRO3" || lexema == "char") return "char";
+            string lex = lexema?.ToLower() ?? "";
+            if (token == "PR35" || lex == "void") return "void";
+            if (token == "PR19" || lex == "int") return "int";
+            if (token == "PR28" || lex == "string") return "string";
+            if (token == "PR02" || token == "PRO2" || lex == "boolean" || lex == "bool") return "boolean";
+            if (token == "PR11" || token == "PR13" || lex == "float" || lex == "double") return "float";
+            if (token == "PR03" || token == "PRO3" || lex == "char") return "char";
             return lexema;
+        }
+
+        private bool EsTokenTipoDato(string lexema, string token)
+        {
+            string lexemaMin = lexema?.ToLower() ?? "";
+            return token == "PR19" || token == "PR28" || token == "PR02" || token == "PRO2" ||
+                   token == "PR11" || token == "PR13" || token == "PR03" || token == "PRO3" ||
+                   lexemaMin == "int" || lexemaMin == "float" || lexemaMin == "double" ||
+                   lexemaMin == "string" || lexemaMin == "char" || lexemaMin == "bool" || lexemaMin == "boolean";
+        }
+
+        private bool EsTipoCompatible(string tipoEsperado, string tipoRecibido)
+        {
+            string esp = NormalizarTipo(tipoEsperado, "");
+            string rec = NormalizarTipo(tipoRecibido, "");
+            if (string.IsNullOrEmpty(esp) || string.IsNullOrEmpty(rec)) return true;
+            if (esp == rec) return true;
+            if (esp == "float" && rec == "int") return true;
+            return false;
+        }
+
+        private bool EsExpresionCompatibleConTipo(string tipoEsperado, List<(string Lexema, string Token)> exprTokens)
+        {
+            string esp = NormalizarTipo(tipoEsperado, "");
+            if (esp == "boolean" && exprTokens != null && exprTokens.Count == 1 &&
+                (exprTokens[0].Lexema == "0" || exprTokens[0].Lexema == "1"))
+            {
+                return true;
+            }
+            string tipoRec = InferirTipoExpresion(exprTokens);
+            return string.IsNullOrEmpty(tipoRec) || EsTipoCompatible(esp, tipoRec);
+        }
+
+        private string InferirTipoExpresion(List<(string Lexema, string Token)> exprTokens)
+        {
+            if (exprTokens == null || exprTokens.Count == 0) return "";
+            if (exprTokens.Count >= 2 && (exprTokens[0].Token == "PR26" || exprTokens[0].Lexema.Equals("run", StringComparison.OrdinalIgnoreCase)))
+            {
+                return tablaFunciones.TryGetValue(exprTokens[1].Lexema, out var fn) ? fn.TipoRetorno : "";
+            }
+
+            foreach (var t in exprTokens)
+            {
+                if (t.Lexema == "==" || t.Lexema == "!=" || t.Lexema == "<" || t.Lexema == ">" ||
+                    t.Lexema == "<=" || t.Lexema == ">=" || t.Lexema == "&&" || t.Lexema == "||" || t.Lexema == "!")
+                {
+                    return "boolean";
+                }
+            }
+
+            bool tieneFloat = false;
+            bool tieneInt = false;
+            bool tieneString = false;
+            bool tieneBool = false;
+
+            foreach (var t in exprTokens)
+            {
+                if (t.Token == "CAD" || t.Lexema.StartsWith("\"")) tieneString = true;
+                else if (t.Token == "CONDEC" || (t.Lexema.Contains(".") && double.TryParse(t.Lexema, out _))) tieneFloat = true;
+                else if (t.Token == "CONENTERO" || int.TryParse(t.Lexema, out _)) tieneInt = true;
+                else if (t.Token.StartsWith("IDEN") || t.Lexema.StartsWith("$"))
+                {
+                    string tv = NormalizarTipo(ObtenerTipoVariable(t.Lexema), "");
+                    if (tv == "string") tieneString = true;
+                    else if (tv == "float") tieneFloat = true;
+                    else if (tv == "int") tieneInt = true;
+                    else if (tv == "boolean") tieneBool = true;
+                }
+            }
+
+            if (tieneString && !tieneInt && !tieneFloat && !tieneBool) return "string";
+            if (tieneFloat) return "float";
+            if (tieneInt) return "int";
+            if (tieneBool) return "boolean";
+            return "";
+        }
+
+        private List<List<(string Lexema, string Token)>> ExtraerArgumentosLlamadaSemantico(int idxInicio)
+        {
+            var args = new List<List<(string Lexema, string Token)>>();
+            int p = idxInicio;
+            while (p < listaTokensCompletos.Count && listaTokensCompletos[p].Lexema != "(") p++;
+            if (p >= listaTokensCompletos.Count || listaTokensCompletos[p].Lexema != "(") return args;
+
+            p++;
+            int parenDepth = 1;
+            var actual = new List<(string Lexema, string Token)>();
+            while (p < listaTokensCompletos.Count && parenDepth > 0)
+            {
+                var tk = listaTokensCompletos[p];
+                if (tk.Lexema == "(") { parenDepth++; actual.Add((tk.Lexema, tk.Token)); }
+                else if (tk.Lexema == ")")
+                {
+                    parenDepth--;
+                    if (parenDepth == 0)
+                    {
+                        if (actual.Count > 0) args.Add(actual);
+                        break;
+                    }
+                    actual.Add((tk.Lexema, tk.Token));
+                }
+                else if (tk.Lexema == "," && parenDepth == 1)
+                {
+                    args.Add(actual);
+                    actual = new List<(string Lexema, string Token)>();
+                }
+                else
+                {
+                    actual.Add((tk.Lexema, tk.Token));
+                }
+                p++;
+            }
+            return args;
         }
 
         public void EvaluarValoresVariables()
@@ -1875,6 +2249,7 @@ namespace AnalizadorLexico_LenguajeZAP
         {
             dtgTablaSimbolos.Rows.Clear();
             tablaSimbolos.Clear();
+            tablaFunciones.Clear();
             listaTokensCompletos.Clear();
             tablaTiposVariables.Clear();
             contadorID = 1;
@@ -2354,6 +2729,69 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     bloque.Add(new InstruccionP("PRN", string.Join(" ", printTokens)));
                 }
+                // 6b. DECLARACIÓN DE FUNCIÓN
+                else if (lexemaMin == "function")
+                {
+                    index++; // tipo
+                    if (index < tokens.Count) index++; // saltar tipo
+                    string nombreFunc = (index < tokens.Count) ? tokens[index].Lexema : "";
+                    if (index < tokens.Count) index++;
+
+                    List<string> rawParams = ExtraerTokensParentesis(ref index, tokens);
+                    List<string> paramNames = rawParams.Where(t => t.StartsWith("$")).ToList();
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    List<InstruccionP> cuerpoFunc = new List<InstruccionP>();
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        cuerpoFunc = ProcesarBloqueTokens(ref index, tokens);
+                    }
+
+                    if (!string.IsNullOrEmpty(nombreFunc))
+                    {
+                        bloque.AddRange(InstruccionP.GenerarCodigoFuncion(nombreFunc, paramNames, cuerpoFunc));
+                    }
+                }
+                // 6c. RETURN
+                else if (lexemaMin == "return")
+                {
+                    index++;
+                    List<string> retTokens = new List<string>();
+                    while (index < tokens.Count && tokens[index].Lexema != ";")
+                    {
+                        retTokens.Add(tokens[index].Lexema);
+                        index++;
+                    }
+                    if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                    if (retTokens.Count >= 2 && retTokens[0].Equals("run", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string fCall = retTokens[1];
+                        var argsList = ExtraerArgsDeTokensRun(retTokens);
+                        bloque.AddRange(InstruccionP.GenerarCodigoLlamada(fCall, argsList, null));
+                        bloque.Add(new InstruccionP("RET"));
+                    }
+                    else
+                    {
+                        bloque.AddRange(InstruccionP.GenerarCodigoReturn(retTokens));
+                    }
+                }
+                // 6d. LLAMADA RUN (Sentencia)
+                else if (lexemaMin == "run")
+                {
+                    index++;
+                    string nombreFunc = (index < tokens.Count) ? tokens[index].Lexema : "";
+                    if (index < tokens.Count) index++;
+                    List<string> rawArgs = ExtraerTokensParentesis(ref index, tokens);
+                    var argsList = DividirArgumentosLlamada(rawArgs);
+                    if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                    if (!string.IsNullOrEmpty(nombreFunc))
+                    {
+                        bloque.AddRange(InstruccionP.GenerarCodigoLlamada(nombreFunc, argsList, null));
+                    }
+                }
                 // 7. INPUT
                 else if (lexemaMin == "input")
                 {
@@ -2379,17 +2817,31 @@ namespace AnalizadorLexico_LenguajeZAP
 
                     List<string> expTokens = new List<string>();
                     index = idxAsig + 1;
-                    while (index < tokens.Count && tokens[index].Lexema != ";" && tokens[index].Lexema != ",")
+                    int parenDepth = 0;
+                    while (index < tokens.Count)
                     {
-                        expTokens.Add(tokens[index].Lexema);
+                        string lx = tokens[index].Lexema;
+                        if (lx == "(") parenDepth++;
+                        else if (lx == ")" && parenDepth > 0) parenDepth--;
+                        if (lx == ";" || (lx == "," && parenDepth == 0)) break;
+                        expTokens.Add(lx);
                         index++;
                     }
                     if (index < tokens.Count && tokens[index].Lexema == ";") index++;
 
                     if (expTokens.Count > 0)
                     {
-                        var instsAsig = InstruccionP.GenerarCodigoDinamico(varName, expTokens);
-                        bloque.AddRange(instsAsig);
+                        if (expTokens.Count >= 2 && expTokens[0].Equals("run", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string nombreFunc = expTokens[1];
+                            var argsList = ExtraerArgsDeTokensRun(expTokens);
+                            bloque.AddRange(InstruccionP.GenerarCodigoLlamada(nombreFunc, argsList, varName));
+                        }
+                        else
+                        {
+                            var instsAsig = InstruccionP.GenerarCodigoDinamico(varName, expTokens);
+                            bloque.AddRange(instsAsig);
+                        }
                     }
                     continue;
                 }
@@ -2432,6 +2884,41 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
             }
             return resultado;
+        }
+
+        private List<List<string>> DividirArgumentosLlamada(List<string> tokensEntreParentesis)
+        {
+            var args = new List<List<string>>();
+            if (tokensEntreParentesis == null || tokensEntreParentesis.Count == 0) return args;
+
+            var actual = new List<string>();
+            int parenDepth = 0;
+            foreach (var t in tokensEntreParentesis)
+            {
+                if (t == "(") { parenDepth++; actual.Add(t); }
+                else if (t == ")") { if (parenDepth > 0) parenDepth--; actual.Add(t); }
+                else if (t == "," && parenDepth == 0)
+                {
+                    if (actual.Count > 0) args.Add(actual);
+                    actual = new List<string>();
+                }
+                else
+                {
+                    actual.Add(t);
+                }
+            }
+            if (actual.Count > 0) args.Add(actual);
+            return args;
+        }
+
+        private List<List<string>> ExtraerArgsDeTokensRun(List<string> expTokens)
+        {
+            int pIdx = expTokens.IndexOf("(");
+            if (pIdx == -1) return new List<List<string>>();
+            int pEnd = expTokens.LastIndexOf(")");
+            if (pEnd <= pIdx) return new List<List<string>>();
+            var inner = expTokens.Skip(pIdx + 1).Take(pEnd - pIdx - 1).ToList();
+            return DividirArgumentosLlamada(inner);
         }
 
         private void InicializarGridsIntermedios()
@@ -2591,27 +3078,163 @@ namespace AnalizadorLexico_LenguajeZAP
                     continue;
                 }
 
-                if (actual.Lexema == "=" || actual.Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
+                if (lexemaMin == "function")
+                {
+                    index++; // tipo
+                    if (index < tokens.Count) index++;
+                    string nombreFunc = (index < tokens.Count) ? tokens[index].Lexema : "";
+                    if (index < tokens.Count) index++;
+
+                    ExtraerTokensParentesis(ref index, tokens);
+
+                    if (!string.IsNullOrEmpty(nombreFunc))
+                    {
+                        cuadruplos.Add(new Cuadruplo("FUNC", nombreFunc, "-", "-"));
+                        triplos.Add(new Triplo("FUNC", nombreFunc, "-"));
+                        tac.Add($"func {nombreFunc}:");
+                    }
+
+                    while (index < tokens.Count && tokens[index].Lexema != "{") index++;
+                    if (index < tokens.Count && tokens[index].Lexema == "{")
+                    {
+                        index++;
+                        ProcesarBloqueDinamico(ref index, tokens, cuadruplos, triplos, tac, infija, postfija, prefija);
+                    }
+
+                    if (!string.IsNullOrEmpty(nombreFunc))
+                    {
+                        cuadruplos.Add(new Cuadruplo("ENDFUNC", nombreFunc, "-", "-"));
+                        triplos.Add(new Triplo("ENDFUNC", nombreFunc, "-"));
+                        tac.Add($"endfunc {nombreFunc}");
+                    }
+                    continue;
+                }
+                else if (lexemaMin == "return")
+                {
+                    index++;
+                    List<string> retTokens = new List<string>();
+                    while (index < tokens.Count && tokens[index].Lexema != ";")
+                    {
+                        retTokens.Add(tokens[index].Lexema);
+                        index++;
+                    }
+                    if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                    if (retTokens.Count > 0)
+                    {
+                        string valRet;
+                        if (retTokens.Count >= 2 && retTokens[0].Equals("run", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string nombreFunc = retTokens[1];
+                            var argsList = ExtraerArgsDeTokensRun(retTokens);
+                            foreach (var arg in argsList)
+                            {
+                                var resArg = CompiladorExpresiones.Compilar(arg, cuadruplos, triplos, tac);
+                                cuadruplos.Add(new Cuadruplo("PARAM", resArg.ResultadoCuadruplo, "-", "-"));
+                                triplos.Add(new Triplo("PARAM", resArg.ResultadoTriplo, "-"));
+                                tac.Add($"param {resArg.ResultadoCuadruplo}");
+                            }
+                            string tempCall = CompiladorExpresiones.NuevoTemporal();
+                            string aridad = argsList.Count.ToString();
+                            cuadruplos.Add(new Cuadruplo("CALL", nombreFunc, aridad, tempCall));
+                            triplos.Add(new Triplo("CALL", nombreFunc, aridad));
+                            tac.Add($"{tempCall} = call {nombreFunc}, {aridad}");
+                            valRet = tempCall;
+                        }
+                        else
+                        {
+                            var resRet = CompiladorExpresiones.Compilar(retTokens, cuadruplos, triplos, tac);
+                            RegistrarNotacionesEx(retTokens, infija, postfija, prefija);
+                            valRet = resRet.ResultadoCuadruplo;
+                        }
+                        cuadruplos.Add(new Cuadruplo("RETURN", valRet, "-", "-"));
+                        triplos.Add(new Triplo("RETURN", valRet, "-"));
+                        tac.Add($"return {valRet}");
+                    }
+                    else
+                    {
+                        cuadruplos.Add(new Cuadruplo("RETURN", "-", "-", "-"));
+                        triplos.Add(new Triplo("RETURN", "-", "-"));
+                        tac.Add("return");
+                    }
+                    continue;
+                }
+                else if (lexemaMin == "run")
+                {
+                    index++;
+                    string nombreFunc = (index < tokens.Count) ? tokens[index].Lexema : "";
+                    if (index < tokens.Count) index++;
+                    List<string> rawArgs = ExtraerTokensParentesis(ref index, tokens);
+                    var argsList = DividirArgumentosLlamada(rawArgs);
+                    if (index < tokens.Count && tokens[index].Lexema == ";") index++;
+
+                    if (!string.IsNullOrEmpty(nombreFunc))
+                    {
+                        foreach (var arg in argsList)
+                        {
+                            var resArg = CompiladorExpresiones.Compilar(arg, cuadruplos, triplos, tac);
+                            cuadruplos.Add(new Cuadruplo("PARAM", resArg.ResultadoCuadruplo, "-", "-"));
+                            triplos.Add(new Triplo("PARAM", resArg.ResultadoTriplo, "-"));
+                            tac.Add($"param {resArg.ResultadoCuadruplo}");
+                        }
+                        string aridad = argsList.Count.ToString();
+                        cuadruplos.Add(new Cuadruplo("CALL", nombreFunc, aridad, "-"));
+                        triplos.Add(new Triplo("CALL", nombreFunc, aridad));
+                        tac.Add($"call {nombreFunc}, {aridad}");
+                    }
+                    continue;
+                }
+                else if (actual.Lexema == "=" || actual.Token == "OPASIG" || (index + 1 < tokens.Count && tokens[index + 1].Lexema == "="))
                 {
                     int idxAsig = (actual.Lexema == "=" || actual.Token == "OPASIG") ? index : index + 1;
                     string varName = tokens[idxAsig - 1].Lexema;
 
                     List<string> expTokens = new List<string>();
                     index = idxAsig + 1;
-                    while (index < tokens.Count && tokens[index].Lexema != ";" && tokens[index].Lexema != ",")
+                    int parenDepth = 0;
+                    while (index < tokens.Count)
                     {
-                        expTokens.Add(tokens[index].Lexema);
+                        string lx = tokens[index].Lexema;
+                        if (lx == "(") parenDepth++;
+                        else if (lx == ")" && parenDepth > 0) parenDepth--;
+                        if (lx == ";" || (lx == "," && parenDepth == 0)) break;
+                        expTokens.Add(lx);
                         index++;
                     }
                     if (index < tokens.Count && tokens[index].Lexema == ";") index++;
 
                     if (expTokens.Count > 0)
                     {
-                        var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplos, triplos, tac);
+                        if (expTokens.Count >= 2 && expTokens[0].Equals("run", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string nombreFunc = expTokens[1];
+                            var argsList = ExtraerArgsDeTokensRun(expTokens);
+                            foreach (var arg in argsList)
+                            {
+                                var resArg = CompiladorExpresiones.Compilar(arg, cuadruplos, triplos, tac);
+                                cuadruplos.Add(new Cuadruplo("PARAM", resArg.ResultadoCuadruplo, "-", "-"));
+                                triplos.Add(new Triplo("PARAM", resArg.ResultadoTriplo, "-"));
+                                tac.Add($"param {resArg.ResultadoCuadruplo}");
+                            }
+                            string tempCall = CompiladorExpresiones.NuevoTemporal();
+                            string aridad = argsList.Count.ToString();
+                            cuadruplos.Add(new Cuadruplo("CALL", nombreFunc, aridad, tempCall));
+                            triplos.Add(new Triplo("CALL", nombreFunc, aridad));
+                            string refTriploCall = $"({triplos.Count - 1})";
+                            tac.Add($"{tempCall} = call {nombreFunc}, {aridad}");
 
-                        cuadruplos.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
-                        triplos.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
-                        tac.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
+                            cuadruplos.Add(new Cuadruplo("=", tempCall, "-", varName));
+                            triplos.Add(new Triplo("=", varName, refTriploCall));
+                            tac.Add($"{varName} = {tempCall}");
+                        }
+                        else
+                        {
+                            var resCompilacion = CompiladorExpresiones.Compilar(expTokens, cuadruplos, triplos, tac);
+
+                            cuadruplos.Add(new Cuadruplo("=", resCompilacion.ResultadoCuadruplo, "-", varName));
+                            triplos.Add(new Triplo("=", varName, resCompilacion.ResultadoTriplo));
+                            tac.Add($"{varName} = {resCompilacion.ResultadoCuadruplo}");
+                        }
 
                         List<string> tokensAsignacionCompleta = new List<string> { varName, "=" };
                         tokensAsignacionCompleta.AddRange(expTokens);

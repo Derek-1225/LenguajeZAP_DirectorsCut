@@ -32,6 +32,10 @@ namespace AnalizadorLexico_LenguajeZAP
             {
                 return $"{Argumento1}:";
             }
+            if (Operacion == "FUNC")
+            {
+                return $"FUNC {Argumento1}:";
+            }
             return $"{Operacion} {Argumento1} {Argumento2}".Trim();
         }
 
@@ -268,6 +272,75 @@ namespace AnalizadorLexico_LenguajeZAP
             codigoSwitch.Add(new InstruccionP("LABEL", etiquetaFin));
 
             return codigoSwitch;
+        }
+
+        // 8. DECLARACIÓN DE FUNCIÓN
+        public static List<InstruccionP> GenerarCodigoFuncion(string nombreFunc, List<string> parametros, List<InstruccionP> cuerpoFuncion)
+        {
+            List<InstruccionP> codigoFunc = new List<InstruccionP>();
+            codigoFunc.Add(new InstruccionP("FUNC", nombreFunc));
+
+            if (parametros != null)
+            {
+                for (int i = parametros.Count - 1; i >= 0; i--)
+                {
+                    codigoFunc.Add(new InstruccionP("STO", parametros[i]));
+                }
+            }
+
+            if (cuerpoFuncion != null && cuerpoFuncion.Count > 0)
+            {
+                codigoFunc.AddRange(cuerpoFuncion);
+            }
+
+            if (cuerpoFuncion == null || cuerpoFuncion.Count == 0 ||
+                !string.Equals(cuerpoFuncion[cuerpoFuncion.Count - 1].Operacion, "RET", StringComparison.OrdinalIgnoreCase))
+            {
+                codigoFunc.Add(new InstruccionP("RET"));
+            }
+
+            codigoFunc.Add(new InstruccionP("ENDFUNC", nombreFunc));
+            return codigoFunc;
+        }
+
+        // 9. SENTENCIA RETURN
+        public static List<InstruccionP> GenerarCodigoReturn(List<string> expTokens)
+        {
+            List<InstruccionP> codigoRet = new List<InstruccionP>();
+            if (expTokens != null && expTokens.Count > 0)
+            {
+                codigoRet.AddRange(GenerarCodigoExpresion(expTokens));
+            }
+            codigoRet.Add(new InstruccionP("RET"));
+            return codigoRet;
+        }
+
+        // 10. LLAMADA A FUNCIÓN (run)
+        public static List<InstruccionP> GenerarCodigoLlamada(string nombreFunc, List<List<string>> argsTokens, string variableDestino = null)
+        {
+            List<InstruccionP> codigoCall = new List<InstruccionP>();
+            int numArgs = 0;
+
+            if (argsTokens != null)
+            {
+                foreach (var arg in argsTokens)
+                {
+                    if (arg != null && arg.Count > 0)
+                    {
+                        codigoCall.AddRange(GenerarCodigoExpresion(arg));
+                        numArgs++;
+                    }
+                }
+            }
+
+            codigoCall.Add(new InstruccionP("CALL", nombreFunc, numArgs.ToString()));
+
+            if (!string.IsNullOrEmpty(variableDestino))
+            {
+                codigoCall.Add(new InstruccionP("STO", variableDestino));
+            }
+
+            return codigoCall;
         }
 
         private static int ObtenerPrecedencia(string operador)

@@ -27,6 +27,11 @@ namespace AnalizadorLexico_LenguajeZAP
         public override string ToString()
         {
             if (Operador == "LABEL") return $"{Arg1}:";
+            if (Operador == "FUNC") return $"func {Arg1}:";
+            if (Operador == "ENDFUNC") return $"endfunc {Arg1}";
+            if (Operador == "PARAM") return $"param {Arg1}";
+            if (Operador == "RETURN") return (Arg1 == "-" || string.IsNullOrEmpty(Arg1)) ? "return" : $"return {Arg1}";
+            if (Operador == "CALL") return (Resultado == "-" || string.IsNullOrEmpty(Resultado)) ? $"call {Arg1}, {Arg2}" : $"{Resultado} = call {Arg1}, {Arg2}";
             if (Operador == "JUMP") return $"goto {Arg1}";
             if (Operador == "ifFalse") return $"ifFalse {Arg1} goto {Resultado}";
             if (Operador == "ifTrue") return $"ifTrue {Arg1} goto {Resultado}";
@@ -52,7 +57,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var inst in codigo)
             {
-                if (inst.Operador == "LABEL") continue;
+                if (inst.Operador == "LABEL" || inst.Operador == "FUNC" || inst.Operador == "ENDFUNC") continue;
                 reporte.TotalInstrucciones++;
 
                 foreach (var op in new[] { inst.Arg1, inst.Arg2, inst.Resultado })
@@ -60,7 +65,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     if (string.IsNullOrEmpty(op) || op == "-") continue;
                     if (op.StartsWith("t") && int.TryParse(op.Substring(1), out _))
                         temporales.Add(op);
-                    else if (op.StartsWith("$"))
+                    else if (op.StartsWith("$") && !(inst.Operador == "CALL" && op == inst.Arg1))
                     {
                         variablesMemoria.Add(op);
                         reporte.AccesosMemoria++;
@@ -72,6 +77,9 @@ namespace AnalizadorLexico_LenguajeZAP
                     case "^": reporte.CostoCiclosEstimado += 8; break;
                     case "/": reporte.CostoCiclosEstimado += 6; break;
                     case "*": reporte.CostoCiclosEstimado += 4; break;
+                    case "CALL": reporte.CostoCiclosEstimado += 5; break;
+                    case "RETURN": reporte.CostoCiclosEstimado += 3; break;
+                    case "PARAM": reporte.CostoCiclosEstimado += 1; break;
                     case "+":
                     case "-":
                     case "==":
@@ -99,7 +107,7 @@ namespace AnalizadorLexico_LenguajeZAP
             foreach (var inst in codigo)
             {
                 string op = (inst.Operacion ?? "").ToUpperInvariant();
-                if (op == "LABEL") continue;
+                if (op == "LABEL" || op == "FUNC" || op == "ENDFUNC") continue;
 
                 reporte.TotalInstrucciones++;
 
@@ -150,6 +158,12 @@ namespace AnalizadorLexico_LenguajeZAP
                         break;
                     case "JMP":
                         reporte.CostoCiclosEstimado += 2;
+                        break;
+                    case "CALL":
+                        reporte.CostoCiclosEstimado += 5;
+                        break;
+                    case "RET":
+                        reporte.CostoCiclosEstimado += 3;
                         break;
                     default:
                         reporte.CostoCiclosEstimado += 1;

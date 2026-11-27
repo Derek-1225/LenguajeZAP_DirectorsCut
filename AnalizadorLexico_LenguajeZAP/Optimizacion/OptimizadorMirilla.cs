@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -64,12 +64,16 @@ namespace AnalizadorLexico_LenguajeZAP
                         if (actualEsTemporal &&
                             actual.Operador != "LABEL" && actual.Operador != "JUMP" &&
                             actual.Operador != "ifFalse" && actual.Operador != "ifTrue" &&
+                            actual.Operador != "FUNC" && actual.Operador != "ENDFUNC" &&
+                            actual.Operador != "PARAM" && actual.Operador != "RETURN" &&
                             siguiente.Operador == "=" && siguiente.Arg1 == actual.Resultado &&
                             !TemporalUsadoDespues(lista, i + 2, actual.Resultado))
                         {
                             string nuevaDesc = actual.Operador == "="
                                 ? $"{siguiente.Resultado} = {actual.Arg1}"
-                                : $"{siguiente.Resultado} = {actual.Arg1} {actual.Operador} {actual.Arg2}";
+                                : actual.Operador == "CALL"
+                                    ? $"{siguiente.Resultado} = call {actual.Arg1}, {actual.Arg2}"
+                                    : $"{siguiente.Resultado} = {actual.Arg1} {actual.Operador} {actual.Arg2}";
                             bitacora.Add($"[Mirilla - Fusión Temporal] {actual} + {siguiente} -> {nuevaDesc}");
                             nueva.Add(new InstruccionIntermedia(actual.Operador, actual.Arg1, actual.Arg2, siguiente.Resultado));
                             i++;

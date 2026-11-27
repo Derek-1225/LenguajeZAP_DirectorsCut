@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,7 +29,8 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR10", new List<string> { "PR10", "CS20", "CONDIC", "CS21", "CS24", "BODY", "CS25" } },
                 { "PR09", new List<string> { "PR09", "CS24", "BODY", "CS25", "DW" } },
                 { "PR14", new List<string> { "PR14", "CS20", "ID", "OPASIG", "ARGF", "CS13", "CONDIC", "CS13", "FOR_INC", "CS21", "CS24", "BODY", "CS25" } },
-                { "PR15", new List<string> { "PR15", "TIPO", "ID", "CS20", "P", "CS21", "CS24", "B", "CS25" } },
+                { "PR15", new List<string> { "PR15", "TIPO_FUNC", "ID", "CS20", "P", "CS21", "CS24", "B", "CS25" } },
+                { "PR25", new List<string> { "PR25", "RET_VAL", "CS15" } },
                 { "PR01", new List<string> { "PR01", "TIPO", "ID", "FIN_AR" } }          
             }},
             { "DECL_REST", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
@@ -102,6 +103,9 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR02",  new List<string>() },
                 { "PR03",  new List<string>() },
                 { "PR28",  new List<string>() },
+                { "PR15",  new List<string>() },
+                { "PR25",  new List<string>() },
+                { "PR26",  new List<string>() },
                 { "CS25",  new List<string>() },
                 { "PR12",  new List<string>() },
                 { "$",     new List<string>() } 
@@ -236,6 +240,21 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "PR13", new List<string> { "PR13" } }, { "PR02", new List<string> { "PR02" } },
                 { "PR03", new List<string> { "PR03" } }, { "PR28", new List<string> { "PR28" } }
             }},
+            { "TIPO_FUNC", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
+                { "PR35", new List<string> { "PR35" } },
+                { "PR19", new List<string> { "PR19" } }, { "PR11", new List<string> { "PR11" } },
+                { "PR13", new List<string> { "PR13" } }, { "PR02", new List<string> { "PR02" } },
+                { "PR03", new List<string> { "PR03" } }, { "PRO3", new List<string> { "PRO3" } },
+                { "PR28", new List<string> { "PR28" } }
+            }},
+            { "RET_VAL", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
+                { "ID",   new List<string> { "EXP" } },
+                { "CN",   new List<string> { "EXP" } },
+                { "CAD",  new List<string> { "EXP" } },
+                { "CS20", new List<string> { "EXP" } },
+                { "PR26", new List<string> { "EXP" } },
+                { "CS15", new List<string>() }
+            }},
             { "P", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
                 { "PR19", new List<string> { "TIPO", "ID", "RE_P" } }, { "PR11", new List<string> { "TIPO", "ID", "RE_P" } },
                 { "PR13", new List<string> { "TIPO", "ID", "RE_P" } }, { "PR02", new List<string> { "TIPO", "ID", "RE_P" } },
@@ -247,13 +266,18 @@ namespace AnalizadorLexico_LenguajeZAP
                 { "CS21", new List<string>() } 
             }},
             { "B", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
-                { "PR25", new List<string> { "PR25", "VALOR", "CS15" } },
+                { "PR25", new List<string> { "PR25", "RET_VAL", "CS15", "B" } },
                 { "PR27", new List<string> { "BODY", "B" } }, { "ID",   new List<string> { "BODY", "B" } },
                 { "PR16", new List<string> { "BODY", "B" } }, { "PR17", new List<string> { "BODY", "B" } },
                 { "PR29", new List<string> { "BODY", "B" } }, { "PR10", new List<string> { "BODY", "B" } },
                 { "PR09", new List<string> { "BODY", "B" } }, { "PR14", new List<string> { "BODY", "B" } },
                 { "PR26", new List<string> { "BODY", "B" } }, { "PR15", new List<string> { "BODY", "B" } },
                 { "PR01", new List<string> { "BODY", "B" } },
+                { "PR19", new List<string> { "BODY", "B" } }, { "PR11", new List<string> { "BODY", "B" } },
+                { "PR13", new List<string> { "BODY", "B" } }, { "PR02", new List<string> { "BODY", "B" } },
+                { "PR03", new List<string> { "BODY", "B" } }, { "PRO3", new List<string> { "BODY", "B" } },
+                { "PR28", new List<string> { "BODY", "B" } }, { "PR22", new List<string> { "BODY", "B" } },
+                { "PR18", new List<string> { "BODY", "B" } }, { "CS24", new List<string> { "BODY", "B" } },
                 { "CS25", new List<string>() }
             }},
             { "FIN_AR", new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase) {
@@ -302,7 +326,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             Stack<string> stack = new Stack<string>();
             stack.Push("$"); 
-            stack.Push("S"); 
+            stack.Push("PROG"); 
 
             int index = 0;
             int lineNumber = 1;
@@ -370,9 +394,19 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                     else if (nextToken.Equals("PR06", StringComparison.OrdinalIgnoreCase))
                     {
-                        stack.Push("CS15"); stack.Push("CS21"); stack.Push("CS16"); stack.Push("VC"); stack.Push("CS16");
-                        stack.Push("CS20"); stack.Push("PR06"); stack.Push("PR26");
-                        result.TraceSteps.Add("[REGLA APLICADA] S -> PR26 PR06 CS20 CS16 VC CS16 CS21 CS15 (Color)");
+                        string argColorToken = (index + 3 < inputTokens.Count) ? inputTokens[index + 3] : "";
+                        if (argColorToken.StartsWith("CAD", StringComparison.OrdinalIgnoreCase) || argColorToken.StartsWith("\""))
+                        {
+                            stack.Push("CS15"); stack.Push("CS21"); stack.Push("CAD");
+                            stack.Push("CS20"); stack.Push("PR06"); stack.Push("PR26");
+                            result.TraceSteps.Add("[REGLA APLICADA] S -> PR26 PR06 CS20 CAD CS21 CS15 (Color)");
+                        }
+                        else
+                        {
+                            stack.Push("CS15"); stack.Push("CS21"); stack.Push("CS16"); stack.Push("VC"); stack.Push("CS16");
+                            stack.Push("CS20"); stack.Push("PR06"); stack.Push("PR26");
+                            result.TraceSteps.Add("[REGLA APLICADA] S -> PR26 PR06 CS20 CS16 VC CS16 CS21 CS15 (Color)");
+                        }
                     }
                     else
                     {
@@ -381,11 +415,37 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                     continue;
                 }
+                if (top.Equals("PROG", StringComparison.OrdinalIgnoreCase))
+                {
+                    string[] firstProg = {
+                        "PR27", "ID", "PR16", "PR29", "PR10", "PR09", "PR14", "PR26", "PR15", "PR01",
+                        "PR19", "PR11", "PR13", "PR02", "PR03", "PRO3", "PR28", "PR22", "PR18", "CS24", "PR25"
+                    };
+
+                    stack.Pop();
+                    if (firstProg.Contains(lookahead, StringComparer.OrdinalIgnoreCase))
+                    {
+                        stack.Push("PROG");
+                        stack.Push("S");
+                        result.TraceSteps.Add("[REGLA APLICADA] PROG -> S PROG");
+                    }
+                    else if (lookahead.Equals("$", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.TraceSteps.Add("[REGLA APLICADA] PROG -> ε");
+                    }
+                    else
+                    {
+                        result.Errors.Add($"Error en la línea {lineNumber}: No se esperaba encontrar {GetFriendlyTokenName(currentInput)} en este bloque de código.");
+                        result.Success = false;
+                        return result;
+                    }
+                    continue;
+                }
                 if (top.Equals("BODY", StringComparison.OrdinalIgnoreCase))
                 {
                     string[] firstS = {
                      "PR27", "ID", "PR16", "PR17", "PR29", "PR10", "PR09", "PR14", "PR26", "PR15", "PR01",
-                     "PR19", "PR11", "PR13", "PR02", "PR03", "PRO3", "PR28","PR22","PR18", "CS24"
+                     "PR19", "PR11", "PR13", "PR02", "PR03", "PRO3", "PR28","PR22","PR18", "CS24", "PR25"
                 };
 
                     string[] followBody = { "PR12", "CS25", "PR31", "PR25", "PR17", "$" };
@@ -709,6 +769,9 @@ namespace AnalizadorLexico_LenguajeZAP
                 case "CONDIC": return "una expresión de condición lógica";
                 case "EXP": return "una expresión o un valor";
                 case "TIPO": return "la declaración de un tipo de dato";
+                case "TIPO_FUNC": return "un tipo de dato o 'void'";
+                case "B": return "una instrucción dentro de la función";
+                case "PROG": return "una instrucción o función válida";
                 case "LLAMADA": return "una llamada a función";
                 case "ARG_RUN":
                 case "ARGC": return "otro elemento para realizar la condicion (Identificador, Número)";

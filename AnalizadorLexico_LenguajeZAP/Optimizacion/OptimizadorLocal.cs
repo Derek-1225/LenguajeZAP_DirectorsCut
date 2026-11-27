@@ -13,7 +13,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var inst in codigo)
             {
-                if (inst.Operador == "LABEL")
+                if (inst.Operador == "LABEL" || inst.Operador == "FUNC" || inst.Operador == "ENDFUNC")
                 {
                     if (bloqueActual.Count > 0)
                     {
@@ -22,7 +22,8 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                     resultado.Add(inst.Clonar());
                 }
-                else if (inst.Operador == "JUMP" || inst.Operador == "ifFalse" || inst.Operador == "ifTrue")
+                else if (inst.Operador == "JUMP" || inst.Operador == "ifFalse" || inst.Operador == "ifTrue" ||
+                         inst.Operador == "CALL" || inst.Operador == "RETURN")
                 {
                     bloqueActual.Add(inst.Clonar());
                     resultado.AddRange(OptimizarBloqueBasico(bloqueActual, bitacora));
@@ -49,11 +50,24 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var inst in bloque)
             {
-                if (inst.Operador == "JUMP" || inst.Operador == "ifFalse" || inst.Operador == "ifTrue" || inst.Operador == "PRINT")
+                if (inst.Operador == "JUMP" || inst.Operador == "ifFalse" || inst.Operador == "ifTrue" ||
+                    inst.Operador == "PRINT" || inst.Operador == "PARAM" || inst.Operador == "RETURN")
                 {
-                    if (tablaConstantes.ContainsKey(inst.Arg1)) inst.Arg1 = tablaConstantes[inst.Arg1];
-                    else if (tablaCopias.ContainsKey(inst.Arg1)) inst.Arg1 = tablaCopias[inst.Arg1];
+                    if (!string.IsNullOrEmpty(inst.Arg1) && inst.Arg1 != "-")
+                    {
+                        if (tablaConstantes.ContainsKey(inst.Arg1)) inst.Arg1 = tablaConstantes[inst.Arg1];
+                        else if (tablaCopias.ContainsKey(inst.Arg1)) inst.Arg1 = tablaCopias[inst.Arg1];
+                    }
 
+                    optimizado.Add(inst);
+                    continue;
+                }
+
+                if (inst.Operador == "CALL")
+                {
+                    tablaConstantes.Clear();
+                    tablaCopias.Clear();
+                    subexpresiones.Clear();
                     optimizado.Add(inst);
                     continue;
                 }
@@ -136,7 +150,7 @@ namespace AnalizadorLexico_LenguajeZAP
             foreach (var inst in codigo)
             {
                 string op = (inst.Operacion ?? "").ToUpperInvariant();
-                if (op == "LABEL")
+                if (op == "LABEL" || op == "FUNC" || op == "ENDFUNC")
                 {
                     if (bloqueActual.Count > 0)
                     {
@@ -145,7 +159,7 @@ namespace AnalizadorLexico_LenguajeZAP
                     }
                     resultado.Add(new InstruccionP(inst.Operacion, inst.Argumento1, inst.Argumento2));
                 }
-                else if (op == "JMP" || op == "FJMP")
+                else if (op == "JMP" || op == "FJMP" || op == "CALL" || op == "RET")
                 {
                     bloqueActual.Add(new InstruccionP(inst.Operacion, inst.Argumento1, inst.Argumento2));
                     resultado.AddRange(OptimizarBloqueBasicoP(bloqueActual, bitacora));

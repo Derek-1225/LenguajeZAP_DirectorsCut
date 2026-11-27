@@ -21,6 +21,11 @@ namespace AnalizadorLexico_LenguajeZAP
             contadorTemporales = 1;
         }
 
+        public static string NuevoTemporal()
+        {
+            return $"t{contadorTemporales++}";
+        }
+
         public static ResultadoCompilacion Compilar(
             List<string> tokensInfijos,
             List<Cuadruplo> cuadruplos,

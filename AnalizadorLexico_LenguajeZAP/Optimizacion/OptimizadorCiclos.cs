@@ -53,7 +53,9 @@ namespace AnalizadorLexico_LenguajeZAP
                         {
                             var inst = lista[k];
                             if (inst.Operador == "LABEL" || inst.Operador == "JUMP" ||
-                                inst.Operador == "ifFalse" || inst.Operador == "ifTrue" || inst.Operador == "PRINT")
+                                inst.Operador == "ifFalse" || inst.Operador == "ifTrue" || inst.Operador == "PRINT" ||
+                                inst.Operador == "FUNC" || inst.Operador == "ENDFUNC" ||
+                                inst.Operador == "PARAM" || inst.Operador == "CALL" || inst.Operador == "RETURN")
                                 continue;
 
                             bool arg1Invariante = inst.Arg1 == "-" || !modificadas.Contains(inst.Arg1);

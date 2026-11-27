@@ -69,7 +69,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
             foreach (var inst in codigo)
             {
-                if (inst.Operador == "LABEL")
+                if (inst.Operador == "LABEL" || inst.Operador == "FUNC" || inst.Operador == "ENDFUNC")
                 {
                     inalcanzable = false;
                     res.Add(inst);
@@ -84,7 +84,7 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 res.Add(inst);
 
-                if (inst.Operador == "JUMP")
+                if (inst.Operador == "JUMP" || inst.Operador == "RETURN")
                     inalcanzable = true;
             }
             return res;
@@ -102,7 +102,8 @@ namespace AnalizadorLexico_LenguajeZAP
 
                 foreach (var inst in lista)
                 {
-                    if (inst.Operador == "LABEL" || inst.Operador == "JUMP") continue;
+                    if (inst.Operador == "LABEL" || inst.Operador == "JUMP" ||
+                        inst.Operador == "FUNC" || inst.Operador == "ENDFUNC" || inst.Operador == "CALL") continue;
                     if (!string.IsNullOrEmpty(inst.Arg1) && inst.Arg1 != "-") usados.Add(inst.Arg1);
                     if (!string.IsNullOrEmpty(inst.Arg2) && inst.Arg2 != "-") usados.Add(inst.Arg2);
                 }
@@ -113,7 +114,9 @@ namespace AnalizadorLexico_LenguajeZAP
                     bool esTemporal = inst.Resultado.StartsWith("t") && int.TryParse(inst.Resultado.Substring(1), out _);
                     bool esOperacionPura = inst.Operador != "LABEL" && inst.Operador != "JUMP" &&
                                            inst.Operador != "ifFalse" && inst.Operador != "ifTrue" &&
-                                           inst.Operador != "PRINT";
+                                           inst.Operador != "PRINT" && inst.Operador != "FUNC" &&
+                                           inst.Operador != "ENDFUNC" && inst.Operador != "PARAM" &&
+                                           inst.Operador != "CALL" && inst.Operador != "RETURN";
 
                     if (esOperacionPura && esTemporal && !usados.Contains(inst.Resultado))
                     {
@@ -213,7 +216,7 @@ namespace AnalizadorLexico_LenguajeZAP
             foreach (var inst in codigo)
             {
                 string op = (inst.Operacion ?? "").ToUpperInvariant();
-                if (op == "LABEL")
+                if (op == "LABEL" || op == "FUNC" || op == "ENDFUNC")
                 {
                     inalcanzable = false;
                     res.Add(inst);
@@ -227,7 +230,7 @@ namespace AnalizadorLexico_LenguajeZAP
                 }
 
                 res.Add(inst);
-                if (op == "JMP")
+                if (op == "JMP" || op == "RET")
                     inalcanzable = true;
             }
 
